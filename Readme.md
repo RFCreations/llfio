@@ -10,7 +10,7 @@
 </tr>
 </table></center>
 
-Herein lies my proposed zero whole machine memory copy file i/o and filesystem
+Herein lies a zero whole machine memory copy file i/o and filesystem
 library for the C++ standard, intended for storage devices with ~1 microsecond
 4Kb transfer latencies and those supporting Storage Class Memory (SCM)/Direct Access
 Storage (DAX). Its i/o overhead, including syscall overhead, has been benchmarked to
@@ -19,9 +19,7 @@ approx 40Gb/sec per thread. It has particularly strong support for writing porta
 filesystem algorithms which work well with directly mapped non-volatile storage such
 as Intel Optane.
 
-It is a complete rewrite after a Boost peer review in August 2015. LLFIO is the
-reference implementation for these C++ standardisations:
-- `llfio::path_view` is expected to enter the C++ 29 standard ([P1030](https://wg21.link/p1030)).
+It is a complete rewrite after a Boost peer review in August 2015.
 
 Other characteristics:
 - Portable to any conforming C++ 17 compiler with a working Filesystem in its STL.
