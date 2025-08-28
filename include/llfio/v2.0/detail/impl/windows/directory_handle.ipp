@@ -257,7 +257,7 @@ namespace detail
       return ntkernel_error(ntstat);
     }
     // Return as a file handle so the direct relink and unlink are used
-    return file_handle(nativeh, 0, 0, file_handle::flag::none, nullptr);
+    return file_handle(nativeh, 0, 0, file_handle::flag::none);
   }
 }  // namespace detail
 

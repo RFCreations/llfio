@@ -151,23 +151,24 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<intptr_t> process_handle::wait(deadline d
 
 LLFIO_HEADERS_ONLY_MEMFUNC_SPEC const process_handle &process_handle::current() noexcept
 {
-  static process_handle self = []() -> process_handle {
+  static process_handle self = []() -> process_handle
+  {
     process_handle ret(native_handle_type(native_handle_type::disposition::process, GetCurrentProcess()), flag::release_pipes_on_close);
     ret._in_pipe = pipe_handle(native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::readable |
                                                   native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
                                                   native_handle_type::disposition::cache_metadata,
                                                   GetStdHandle(STD_INPUT_HANDLE)),
-                               pipe_handle::flag::none, nullptr);
+                               pipe_handle::flag::none);
     ret._out_pipe = pipe_handle(native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::writable |
                                                    native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
                                                    native_handle_type::disposition::cache_metadata,
                                                    GetStdHandle(STD_OUTPUT_HANDLE)),
-                                pipe_handle::flag::none, nullptr);
+                                pipe_handle::flag::none);
     ret._error_pipe = pipe_handle(native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::writable |
                                                      native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
                                                      native_handle_type::disposition::cache_metadata,
                                                      GetStdHandle(STD_ERROR_HANDLE)),
-                                  pipe_handle::flag::none, nullptr);
+                                  pipe_handle::flag::none);
     return ret;
   }();
   return self;
@@ -223,18 +224,20 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle> process_handle::launch_pr
   wchar_t argsbuffer[32768], *argsbuffere = argsbuffer;
   // First copy in the executable path
   *argsbuffere++ = '"';
-  OUTCOME_TRY(visit(path, [&](auto sv) -> result<void> {
-    for(auto c : sv)
-    {
-      if((size_t)(argsbuffere - argsbuffer) >= sizeof(argsbuffer))
-      {
-        return errc::value_too_large;
-      }
-      *argsbuffere++ = c;
-    }
-    return success();
-  }));
-  if((size_t)(argsbuffere - argsbuffer) >= sizeof(argsbuffer) - 2)
+  OUTCOME_TRY(visit(path,
+                    [&](auto sv) -> result<void>
+                    {
+                      for(auto c : sv)
+                      {
+                        if((size_t) (argsbuffere - argsbuffer) >= sizeof(argsbuffer))
+                        {
+                          return errc::value_too_large;
+                        }
+                        *argsbuffere++ = c;
+                      }
+                      return success();
+                    }));
+  if((size_t) (argsbuffere - argsbuffer) >= sizeof(argsbuffer) - 2)
   {
     return errc::value_too_large;
   }
@@ -242,43 +245,47 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle> process_handle::launch_pr
   *argsbuffere++ = ' ';
   for(auto arg : args)
   {
-    OUTCOME_TRY(visit(arg, [&](auto sv) -> result<void> {
-      for(auto c : sv)
-      {
-        if((size_t)(argsbuffere - argsbuffer) >= sizeof(argsbuffer))
-        {
-          return errc::value_too_large;
-        }
-        *argsbuffere++ = c;
-      }
-      if((size_t)(argsbuffere - argsbuffer) >= sizeof(argsbuffer))
-      {
-        return errc::value_too_large;
-      }
-      *argsbuffere++ = ' ';
-      return success();
-    }));
+    OUTCOME_TRY(visit(arg,
+                      [&](auto sv) -> result<void>
+                      {
+                        for(auto c : sv)
+                        {
+                          if((size_t) (argsbuffere - argsbuffer) >= sizeof(argsbuffer))
+                          {
+                            return errc::value_too_large;
+                          }
+                          *argsbuffere++ = c;
+                        }
+                        if((size_t) (argsbuffere - argsbuffer) >= sizeof(argsbuffer))
+                        {
+                          return errc::value_too_large;
+                        }
+                        *argsbuffere++ = ' ';
+                        return success();
+                      }));
   }
   *(--argsbuffere) = 0;
   wchar_t envbuffer[32768], *envbuffere = envbuffer;
   for(auto i : env)
   {
-    OUTCOME_TRY(visit(i, [&](auto sv) -> result<void> {
-      for(auto c : sv)
-      {
-        if((size_t)(envbuffere - envbuffer) >= sizeof(envbuffer))
-        {
-          return errc::value_too_large;
-        }
-        *envbuffere++ = c;
-      }
-      if((size_t)(envbuffere - envbuffer) >= sizeof(argsbuffer))
-      {
-        return errc::value_too_large;
-      }
-      *envbuffere++ = 0;
-      return success();
-    }));
+    OUTCOME_TRY(visit(i,
+                      [&](auto sv) -> result<void>
+                      {
+                        for(auto c : sv)
+                        {
+                          if((size_t) (envbuffere - envbuffer) >= sizeof(envbuffer))
+                          {
+                            return errc::value_too_large;
+                          }
+                          *envbuffere++ = c;
+                        }
+                        if((size_t) (envbuffere - envbuffer) >= sizeof(argsbuffer))
+                        {
+                          return errc::value_too_large;
+                        }
+                        *envbuffere++ = 0;
+                        return success();
+                      }));
   }
   *envbuffere = 0;
   path_view::zero_terminated_rendered_path<> zpath(path);

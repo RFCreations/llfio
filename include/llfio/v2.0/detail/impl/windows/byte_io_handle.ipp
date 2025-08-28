@@ -76,8 +76,7 @@ inline bool do_cancel(const native_handle_type &nativeh, span<windows_nt_kernel:
 // Returns true if operation completed immediately
 template <bool blocking, class Syscall, class BuffersType>
 inline bool do_read_write(byte_io_handle::io_result<BuffersType> &ret, Syscall &&syscall, const native_handle_type &nativeh,
-                          byte_io_multiplexer::io_operation_state *state, span<windows_nt_kernel::IO_STATUS_BLOCK> ols,
-                          byte_io_handle::io_request<BuffersType> reqs, deadline d) noexcept
+                          span<windows_nt_kernel::IO_STATUS_BLOCK> ols, byte_io_handle::io_request<BuffersType> reqs, deadline d) noexcept
 {
   using namespace windows_nt_kernel;
   using EIOSB = windows_nt_kernel::IO_STATUS_BLOCK;
@@ -131,7 +130,7 @@ inline bool do_read_write(byte_io_handle::io_result<BuffersType> &ret, Syscall &
 #endif
     reqs.offset += req.size();
     ol.Status = 0x103 /*STATUS_PENDING*/;
-    NTSTATUS ntstat = syscall(nativeh.h, nullptr, nullptr, state, &ol, (PVOID) req.data(), static_cast<DWORD>(req.size()), &offset, nullptr);
+    NTSTATUS ntstat = syscall(nativeh.h, nullptr, nullptr, nullptr, &ol, (PVOID) req.data(), static_cast<DWORD>(req.size()), &offset, nullptr);
     if(ntstat < 0 && ntstat != 0x103 /*STATUS_PENDING*/)
     {
       InterlockedCompareExchange(&ol.Status, ntstat, 0x103 /*STATUS_PENDING*/);
@@ -213,7 +212,7 @@ byte_io_handle::io_result<byte_io_handle::buffers_type> byte_io_handle::_do_read
   }
   using EIOSB = windows_nt_kernel::IO_STATUS_BLOCK;
   std::array<EIOSB, 64> _ols{};
-  do_read_write<true>(ret, NtReadFile, _v, nullptr, {_ols.data(), _ols.size()}, reqs, d);
+  do_read_write<true>(ret, NtReadFile, _v, {_ols.data(), _ols.size()}, reqs, d);
   return ret;
 }
 
@@ -238,7 +237,7 @@ byte_io_handle::io_result<byte_io_handle::const_buffers_type> byte_io_handle::_d
   }
   using EIOSB = windows_nt_kernel::IO_STATUS_BLOCK;
   std::array<EIOSB, 64> _ols{};
-  do_read_write<true>(ret, NtWriteFile, _v, nullptr, {_ols.data(), _ols.size()}, reqs, d);
+  do_read_write<true>(ret, NtWriteFile, _v, {_ols.data(), _ols.size()}, reqs, d);
   return ret;
 }
 

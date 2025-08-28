@@ -37,7 +37,7 @@ result<file_handle> file_handle::file(const path_handle &base, file_handle::path
 {
   windows_nt_kernel::init();
   using namespace windows_nt_kernel;
-  result<file_handle> ret(in_place_type<file_handle>, native_handle_type(), flags, nullptr);
+  result<file_handle> ret(in_place_type<file_handle>, native_handle_type(), flags);
   native_handle_type &nativeh = ret.value()._v;
   LLFIO_LOG_FUNCTION_CALL(&ret);
   nativeh.behaviour |= native_handle_type::disposition::file | native_handle_type::disposition::kernel_handle;
@@ -192,7 +192,7 @@ result<file_handle> file_handle::temp_inode(const path_handle &dirh, mode _mode,
   using namespace windows_nt_kernel;
   // No need to rename to random on unlink or check inode before unlink
   flags |= flag::disable_safety_unlinks | flag::win_disable_unlink_emulation;
-  result<file_handle> ret(in_place_type<file_handle>, native_handle_type(), flags, nullptr);
+  result<file_handle> ret(in_place_type<file_handle>, native_handle_type(), flags);
   native_handle_type &nativeh = ret.value()._v;
   LLFIO_LOG_FUNCTION_CALL(&ret);
   nativeh.behaviour |= native_handle_type::disposition::file | native_handle_type::disposition::kernel_handle;
@@ -321,8 +321,7 @@ result<file_handle> file_handle::temp_inode(const path_handle &dirh, mode _mode,
 result<file_handle> file_handle::reopen(mode mode_, caching caching_, deadline /*unused*/) const noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
-  result<file_handle> ret(in_place_type<file_handle>, native_handle_type(), _.flags, nullptr);
-  ret.value()._ctx = _ctx;
+  result<file_handle> ret(in_place_type<file_handle>, native_handle_type(), _.flags);
   OUTCOME_TRY(do_clone_handle(ret.value()._v, _v, mode_, caching_, _.flags));
   return ret;
 }
