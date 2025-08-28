@@ -83,12 +83,7 @@ So long as you use `path_discovery::temporary_named_pipes_directory()`
 as your base directory, you can write quite portable code between POSIX
 and Windows.
 */
-class LLFIO_DECL pipe_handle : public byte_io_handle,
-                               public fs_handle
-#ifndef _WIN32
-    ,
-                               public pollable_handle
-#endif
+class LLFIO_DECL pipe_handle : public byte_io_handle, public fs_handle
 {
   LLFIO_HEADERS_ONLY_VIRTUAL_SPEC const handle &_get_handle() const noexcept final { return *this; }
   LLFIO_HEADERS_ONLY_VIRTUAL_SPEC result<void> _replace_handle(handle &&o_) noexcept override
@@ -124,14 +119,14 @@ public:
   //! Default constructor
   constexpr pipe_handle() {}  // NOLINT
   //! Construct a handle from a supplied native handle
-  constexpr pipe_handle(native_handle_type h, dev_t devid, ino_t inode, flag flags, byte_io_multiplexer *ctx)
-      : byte_io_handle(std::move(h), flags, ctx)
+  constexpr pipe_handle(native_handle_type h, dev_t devid, ino_t inode, flag flags)
+      : byte_io_handle(std::move(h), flags)
       , fs_handle(devid, inode)
   {
   }
   //! Construct a handle from a supplied native handle
-  constexpr pipe_handle(native_handle_type h, flag flags, byte_io_multiplexer *ctx)
-      : byte_io_handle(std::move(h), flags, ctx)
+  constexpr pipe_handle(native_handle_type h, flag flags)
+      : byte_io_handle(std::move(h), flags)
   {
   }
   //! No copy construction (use clone())
@@ -145,14 +140,14 @@ public:
   {
   }
   //! Explicit conversion from handle permitted
-  explicit constexpr pipe_handle(handle &&o, dev_t devid, ino_t inode, byte_io_multiplexer *ctx) noexcept
-      : byte_io_handle(std::move(o), ctx)
+  explicit constexpr pipe_handle(handle &&o, dev_t devid, ino_t inode) noexcept
+      : byte_io_handle(std::move(o))
       , fs_handle(devid, inode)
   {
   }
   //! Explicit conversion from handle permitted
-  explicit constexpr pipe_handle(handle &&o, byte_io_multiplexer *ctx) noexcept
-      : byte_io_handle(std::move(o), ctx)
+  explicit constexpr pipe_handle(handle &&o) noexcept
+      : byte_io_handle(std::move(o))
   {
   }
   //! Explicit conversion from byte_io_handle permitted

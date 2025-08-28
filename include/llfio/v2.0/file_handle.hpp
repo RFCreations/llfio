@@ -87,14 +87,14 @@ public:
   //! Default constructor
   constexpr file_handle() {}  // NOLINT
   //! Construct a handle from a supplied native handle
-  constexpr file_handle(native_handle_type h, dev_t devid, ino_t inode, flag flags, byte_io_multiplexer *ctx)
-      : lockable_byte_io_handle(std::move(h), flags, ctx)
+  constexpr file_handle(native_handle_type h, dev_t devid, ino_t inode, flag flags)
+      : lockable_byte_io_handle(std::move(h), flags)
       , fs_handle(devid, inode)
   {
   }
   //! Construct a handle from a supplied native handle
-  constexpr file_handle(native_handle_type h, flag flags, byte_io_multiplexer *ctx)
-      : lockable_byte_io_handle(std::move(h), flags, ctx)
+  constexpr file_handle(native_handle_type h, flag flags)
+      : lockable_byte_io_handle(std::move(h), flags)
   {
   }
   //! No copy construction (use clone())
@@ -108,14 +108,14 @@ public:
   {
   }
   //! Explicit conversion from handle permitted
-  explicit constexpr file_handle(handle &&o, dev_t devid, ino_t inode, byte_io_multiplexer *ctx) noexcept
-      : lockable_byte_io_handle(std::move(o), ctx)
+  explicit constexpr file_handle(handle &&o, dev_t devid, ino_t inode) noexcept
+      : lockable_byte_io_handle(std::move(o))
       , fs_handle(devid, inode)
   {
   }
   //! Explicit conversion from handle permitted
-  explicit constexpr file_handle(handle &&o, byte_io_multiplexer *ctx) noexcept
-      : lockable_byte_io_handle(std::move(o), ctx)
+  explicit constexpr file_handle(handle &&o) noexcept
+      : lockable_byte_io_handle(std::move(o))
   {
   }
   //! Explicit conversion from byte_io_handle permitted
@@ -395,10 +395,7 @@ public:
   LLFIO_HEADERS_ONLY_VIRTUAL_SPEC result<extent_type> zero(extent_pair extent, deadline d = deadline()) noexcept;
   //! \overload
   LLFIO_MAKE_FREE_FUNCTION
-  result<extent_type> zero(extent_type offset, extent_type bytes, deadline d = deadline()) noexcept
-  {
-    return zero({offset, bytes}, d);
-  }
+  result<extent_type> zero(extent_type offset, extent_type bytes, deadline d = deadline()) noexcept { return zero({offset, bytes}, d); }
 
   LLFIO_DEADLINE_TRY_FOR_UNTIL(zero)
 };

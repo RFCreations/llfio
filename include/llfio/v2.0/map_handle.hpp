@@ -55,32 +55,33 @@ public:
   using size_type = handle::size_type;
 
   //! The behaviour of the memory section
-  QUICKCPPLIB_BITFIELD_BEGIN(flag){
-  none = 0U,           //!< No flags
-  read = 1U << 0U,     //!< Memory views can be read
-  write = 1U << 1U,    //!< Memory views can be written
-  cow = 1U << 2U,      //!< Memory views can be copy on written
-  execute = 1U << 3U,  //!< Memory views can execute code
+  QUICKCPPLIB_BITFIELD_BEGIN(flag) {
+    none = 0U,           //!< No flags
+    read = 1U << 0U,     //!< Memory views can be read
+    write = 1U << 1U,    //!< Memory views can be written
+    cow = 1U << 2U,      //!< Memory views can be copy on written
+    execute = 1U << 3U,  //!< Memory views can execute code
 
-  nocommit = 1U << 8U,     //!< Don't allocate space for this memory in the system immediately
-  prefault = 1U << 9U,     //!< Prefault, as if by reading every page, any views of memory upon creation.
-  executable = 1U << 10U,  //!< The backing storage is in fact an executable program binary.
-  singleton = 1U << 11U,   //!< A single instance of this section is to be shared by all processes using the same backing file.
+    nocommit = 1U << 8U,     //!< Don't allocate space for this memory in the system immediately
+    prefault = 1U << 9U,     //!< Prefault, as if by reading every page, any views of memory upon creation.
+    executable = 1U << 10U,  //!< The backing storage is in fact an executable program binary.
+    singleton = 1U << 11U,   //!< A single instance of this section is to be shared by all processes using the same backing file.
 
-  barrier_on_close =
-  1U << 16U,          //!< Maps of this section, if writable, issue a `barrier()` when destructed blocking until data (not metadata) reaches physical storage.
-  nvram = 1U << 17U,  //!< This section is of non-volatile RAM.
-  write_via_syscall =
-  1U
-  << 18U,  //!< For file backed maps, `map_handle::write()` is implemented as a `write()` syscall to the file descriptor. This causes the map to be mapped read-only.
+    barrier_on_close =
+    1U << 16U,          //!< Maps of this section, if writable, issue a `barrier()` when destructed blocking until data (not metadata) reaches physical storage.
+    nvram = 1U << 17U,  //!< This section is of non-volatile RAM.
+    write_via_syscall =
+    1U
+    << 18U,  //!< For file backed maps, `map_handle::write()` is implemented as a `write()` syscall to the file descriptor. This causes the map to be mapped read-only.
 
-  page_sizes_1 = 1U << 24U,  //!< Use `utils::page_sizes()[1]` sized pages, or fail.
-  page_sizes_2 = 2U << 24U,  //!< Use `utils::page_sizes()[2]` sized pages, or fail.
-  page_sizes_3 = 3U << 24U,  //!< Use `utils::page_sizes()[3]` sized pages, or fail.
+    page_sizes_1 = 1U << 24U,  //!< Use `utils::page_sizes()[1]` sized pages, or fail.
+    page_sizes_2 = 2U << 24U,  //!< Use `utils::page_sizes()[2]` sized pages, or fail.
+    page_sizes_3 = 3U << 24U,  //!< Use `utils::page_sizes()[3]` sized pages, or fail.
 
-  // NOTE: IF UPDATING THIS UPDATE THE std::ostream PRINTER BELOW!!!
+    // NOTE: IF UPDATING THIS UPDATE THE std::ostream PRINTER BELOW!!!
 
-  readwrite = (read | write)};
+    readwrite = (read | write)
+  };
   QUICKCPPLIB_BITFIELD_END(flag)
 
 protected:
@@ -946,83 +947,6 @@ LLFIO_V2_NAMESPACE_EXPORT_BEGIN
 template <class T> constexpr inline span<T> in_place_attach(map_handle &mh) noexcept
 {
   return span<T>{reinterpret_cast<T *>(mh.address()), mh.length() / sizeof(T)};
-}
-
-namespace detail
-{
-  inline result<byte_io_handle::registered_buffer_type> map_handle_allocate_registered_buffer(size_t &bytes) noexcept
-  {
-    LLFIO_EXCEPTION_TRY
-    {
-      auto make_shared = [](map_handle h) -> byte_io_handle::registered_buffer_type
-      {
-        struct registered_buffer_type_indirect : byte_io_multiplexer::_registered_buffer_type
-        {
-          map_handle h;
-          registered_buffer_type_indirect(map_handle _h)
-              : byte_io_multiplexer::_registered_buffer_type(_h.as_span())
-              , h(std::move(_h))
-          {
-          }
-        };
-        return byte_io_handle::registered_buffer_type(std::make_shared<registered_buffer_type_indirect>(std::move(h)));
-      };
-      const auto &page_sizes = utils::page_sizes(true);
-      size_t idx = 0;
-      for(size_t n = 0; n < page_sizes.size(); ++n)
-      {
-        if(page_sizes[n] > bytes)
-        {
-          break;
-        }
-        if((bytes & (page_sizes[n] - 1)) == 0)
-        {
-          idx = n;
-        }
-      }
-      section_handle::flag flags = section_handle::flag::readwrite;
-      if(idx > 0)
-      {
-        switch(idx)
-        {
-        case 1:
-          flags |= section_handle::flag::page_sizes_1;
-          break;
-        case 2:
-          flags |= section_handle::flag::page_sizes_2;
-          break;
-        case 3:
-          flags |= section_handle::flag::page_sizes_3;
-          break;
-        default:
-          break;
-        }
-        auto r = map_handle::map(bytes, false, flags);
-        if(r)
-        {
-          bytes = (bytes + page_sizes[idx] - 1) & ~(page_sizes[idx] - 1);
-          return make_shared(std::move(r).value());
-        }
-      }
-      auto r = map_handle::map(bytes, false);
-      if(r)
-      {
-        bytes = (bytes + page_sizes[0] - 1) & ~(page_sizes[0] - 1);
-        return make_shared(std::move(r).value());
-      }
-      return errc::not_enough_memory;
-    }
-    LLFIO_EXCEPTION_CATCH_ALL
-    {
-      return error_from_exception();
-    }
-  }
-}  // namespace detail
-
-// Implement byte_io_handle::_do_allocate_registered_buffer()
-inline result<byte_io_handle::registered_buffer_type> byte_io_handle::_do_allocate_registered_buffer(size_t &bytes) noexcept
-{
-  return detail::map_handle_allocate_registered_buffer(bytes);
 }
 
 // BEGIN make_free_functions.py

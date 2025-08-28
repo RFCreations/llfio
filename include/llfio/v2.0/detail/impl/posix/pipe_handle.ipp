@@ -27,9 +27,10 @@ Distributed under the Boost Software License, Version 1.0.
 
 LLFIO_V2_NAMESPACE_BEGIN
 
-result<pipe_handle> pipe_handle::pipe(pipe_handle::path_view_type path, pipe_handle::mode _mode, pipe_handle::creation _creation, pipe_handle::caching _caching, pipe_handle::flag flags, const path_handle &base) noexcept
+result<pipe_handle> pipe_handle::pipe(pipe_handle::path_view_type path, pipe_handle::mode _mode, pipe_handle::creation _creation, pipe_handle::caching _caching,
+                                      pipe_handle::flag flags, const path_handle &base) noexcept
 {
-  result<pipe_handle> ret(pipe_handle(native_handle_type(), 0, 0, flags, nullptr));
+  result<pipe_handle> ret(pipe_handle(native_handle_type(), 0, 0, flags));
   native_handle_type &nativeh = ret.value()._v;
   LLFIO_LOG_FUNCTION_CALL(&ret);
   nativeh.behaviour |= native_handle_type::disposition::pipe | native_handle_type::disposition::kernel_handle;
@@ -129,7 +130,7 @@ result<pipe_handle> pipe_handle::pipe(pipe_handle::path_view_type path, pipe_han
 
 result<std::pair<pipe_handle, pipe_handle>> pipe_handle::anonymous_pipe(caching _caching, flag flags) noexcept
 {
-  result<std::pair<pipe_handle, pipe_handle>> ret(pipe_handle(native_handle_type(), 0, 0, flags, nullptr), pipe_handle(native_handle_type(), 0, 0, flags, nullptr));
+  result<std::pair<pipe_handle, pipe_handle>> ret(pipe_handle(native_handle_type(), 0, 0, flags), pipe_handle(native_handle_type(), 0, 0, flags));
   native_handle_type &readnativeh = ret.value().first._v, &writenativeh = ret.value().second._v;
   LLFIO_LOG_FUNCTION_CALL(&ret);
   OUTCOME_TRY(auto &&readattribs, attribs_from_handle_mode_caching_and_flags(readnativeh, mode::read, creation::open_existing, _caching, flags));

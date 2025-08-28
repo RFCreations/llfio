@@ -199,17 +199,17 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC const process_handle &process_handle::current() 
                                                   native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
                                                   native_handle_type::disposition::cache_metadata,
                                                   STDIN_FILENO),
-                               pipe_handle::flag::none, nullptr);
+                               pipe_handle::flag::none);
     ret._out_pipe = pipe_handle(native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::writable |
                                                    native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
                                                    native_handle_type::disposition::cache_metadata,
                                                    STDOUT_FILENO),
-                                pipe_handle::flag::none, nullptr);
+                                pipe_handle::flag::none);
     ret._error_pipe = pipe_handle(native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::writable |
                                                      native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
                                                      native_handle_type::disposition::cache_metadata,
                                                      STDERR_FILENO),
-                                  pipe_handle::flag::none, nullptr);
+                                  pipe_handle::flag::none);
     return ret;
   }();
   return self;

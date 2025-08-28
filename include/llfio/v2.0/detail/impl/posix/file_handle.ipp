@@ -44,7 +44,7 @@ LLFIO_V2_NAMESPACE_BEGIN
 result<file_handle> file_handle::file(const path_handle &base, file_handle::path_view_type path, file_handle::mode _mode, file_handle::creation _creation,
                                       file_handle::caching _caching, file_handle::flag flags) noexcept
 {
-  result<file_handle> ret(file_handle(native_handle_type(), 0, 0, flags, nullptr));
+  result<file_handle> ret(file_handle(native_handle_type(), 0, 0, flags));
   native_handle_type &nativeh = ret.value()._v;
   LLFIO_LOG_FUNCTION_CALL(&ret);
   nativeh.behaviour |= native_handle_type::disposition::file | native_handle_type::disposition::kernel_handle;
@@ -117,7 +117,7 @@ result<file_handle> file_handle::temp_inode(const path_handle &dirh, mode _mode,
 {
   // No need to check inode before unlink
   flags |= flag::unlink_on_first_close | flag::disable_safety_unlinks;
-  result<file_handle> ret(file_handle(native_handle_type(), 0, 0, flags, nullptr));
+  result<file_handle> ret(file_handle(native_handle_type(), 0, 0, flags));
   native_handle_type &nativeh = ret.value()._v;
   LLFIO_LOG_FUNCTION_CALL(&ret);
   nativeh.behaviour |= native_handle_type::disposition::file | native_handle_type::disposition::kernel_handle;
@@ -196,7 +196,7 @@ result<file_handle> file_handle::reopen(mode mode_, caching caching_, deadline d
   // Fast path
   if(mode_ == mode::unchanged)
   {
-    result<file_handle> ret(file_handle(native_handle(), _devid, _inode, _.flags, _ctx));
+    result<file_handle> ret(file_handle(native_handle(), _devid, _inode, _.flags));
     ret.value()._v.behaviour = _v.behaviour;
     ret.value()._v.fd = ::fcntl(_v.fd, F_DUPFD_CLOEXEC, 0);
     if(-1 == ret.value()._v.fd)
@@ -341,9 +341,7 @@ result<file_handle> file_handle::reopen(mode mode_, caching caching_, deadline d
 result<file_handle::extent_type> file_handle::maximum_extent() const noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
-  struct stat s
-  {
-  };
+  struct stat s{};
   memset(&s, 0, sizeof(s));
   if(-1 == ::fstat(_v.fd, &s))
   {
@@ -503,6 +501,7 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
       extent.length = mycurrentlength - extent.offset;
     }
     LLFIO_POSIX_DEADLINE_TO_SLEEP_INIT(d);
+    (void) timeout;
     const extent_type blocksize = utils::file_buffer_default_size();
     byte *buffer = nullptr;
     auto unbufferh = make_scope_exit(
@@ -515,84 +514,7 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
     extent_pair ret(extent.offset, 0);
     if(!dest_.is_regular())
     {
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
-      while(extent.length > 0)
-      {
-#ifdef __APPLE__
-        off_t written = extent.length;
-        if(-1 == ::sendfile(_v.fd, dest_.native_handle().fd, extent.offset, &written, nullptr, 0))
-#elif defined(__FreeBSD__)
-        off_t written = 0;
-        if(-1 == ::sendfile(_v.fd, dest_.native_handle().fd, extent.offset, extent.length, nullptr, &written, 0))
-#else
-#if defined(__GLIBC__) || defined(__ANDROID__)
-        off64_t off_in = extent.offset, off_out = 0;
-#else
-        off_t off_in = extent.offset, off_out = 0;
-#endif
-        auto written = ::splice(_v.fd, &off_in, dest_.native_handle().fd, &off_out, extent.length, 0);
-        if(written < 0)
-#endif
-        {
-          if(EAGAIN != errno && EWOULDBLOCK == errno)
-          {
-            if(ret.length == 0)
-            {
-              break;
-            }
-            return posix_error();
-          }
-        }
-        extent.offset += written;
-        destoffset += written;
-        extent.length -= written;
-        ret.length += written;
-        if(extent.length == 0)
-        {
-          break;
-        }
-        if(!d || !d.steady || d.nsecs != 0)
-        {
-          LLFIO_POSIX_DEADLINE_TO_SLEEP_LOOP(d);
-          int mstimeout = (timeout == nullptr) ? -1 : (timeout->tv_sec * 1000 + timeout->tv_nsec / 1000000LL);
-          pollfd p;
-          memset(&p, 0, sizeof(p));
-          p.fd = dest_.native_handle().fd;
-          p.events = POLLOUT | POLLERR;
-          if(-1 == ::poll(&p, 1, mstimeout))
-          {
-            return posix_error();
-          }
-        }
-        LLFIO_POSIX_DEADLINE_TO_TIMEOUT_LOOP(d);
-      }
-      if(ret.length > 0)
-      {
-        return ret;
-      }
-#endif
-      buffer = utils::page_allocator<byte>().allocate(blocksize);
-      while(extent.length > 0)
-      {
-        deadline nd;
-        const size_t towrite = (extent.length < blocksize) ? (size_t) extent.length : blocksize;
-        buffer_type b(buffer, utils::round_up_to_page_size(towrite, 4096) /* to allow aligned i/o files */);
-        LLFIO_DEADLINE_TO_PARTIAL_DEADLINE(nd, d);
-        OUTCOME_TRY(auto &&readed, read({{&b, 1}, extent.offset}, nd));
-        const_buffer_type cb(readed.front().data(), std::min(readed.front().size(), towrite));
-        if(cb.size() == 0)
-        {
-          return ret;
-        }
-        LLFIO_DEADLINE_TO_PARTIAL_DEADLINE(nd, d);
-        OUTCOME_TRY(auto &&written_, dest_.write({{&cb, 1}, destoffset}, nd));
-        const auto written = written_.front().size();
-        extent.offset += written;
-        destoffset += written;
-        extent.length -= written;
-        ret.length += written;
-      }
-      return ret;
+      return errc::operation_not_supported;
     }
     const auto destoffsetdiff = destoffset - extent.offset;
     struct workitem

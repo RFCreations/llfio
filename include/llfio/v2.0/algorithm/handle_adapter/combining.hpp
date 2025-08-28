@@ -40,8 +40,8 @@ namespace algorithm
     {
       file_handle_wrapper() = default;
       using file_handle::file_handle;
-      file_handle_wrapper(native_handle_type nativeh, byte_io_handle::flag flags, byte_io_multiplexer *ctx)
-          : file_handle(nativeh, 0, 0, flags, ctx)
+      file_handle_wrapper(native_handle_type nativeh, byte_io_handle::flag flags)
+          : file_handle(nativeh, 0, 0, flags)
       {
       }
     };
@@ -108,14 +108,14 @@ namespace algorithm
 
     protected:
       combining_handle_adapter_base() = default;
-      constexpr combining_handle_adapter_base(target_handle_type *a, _source_handle_type *b, mode _mode, flag flags, byte_io_multiplexer *ctx)
-          : Base(_native_handle(_mode, a->native_handle().behaviour, b->native_handle().behaviour), flags, ctx)
+      constexpr combining_handle_adapter_base(target_handle_type *a, _source_handle_type *b, mode _mode, flag flags)
+          : Base(_native_handle(_mode, a->native_handle().behaviour, b->native_handle().behaviour), flags)
           , _target(a)
           , _source(b)
       {
       }
-      combining_handle_adapter_base(target_handle_type *a, void *b, mode _mode, flag flags, byte_io_multiplexer *ctx)
-          : Base(_native_handle(_mode, a->native_handle().behaviour, ~native_handle_type::disposition::invalid), flags, ctx)
+      combining_handle_adapter_base(target_handle_type *a, void *b, mode _mode, flag flags)
+          : Base(_native_handle(_mode, a->native_handle().behaviour, ~native_handle_type::disposition::invalid), flags)
           , _target(a)
           , _source(reinterpret_cast<_source_handle_type *>(b))
       {
@@ -563,9 +563,8 @@ namespace algorithm
     combining_handle_adapter() = default;
     //! Constructor, passing any extra arguments to `Op::override`.
     template <class... Args>
-    combining_handle_adapter(target_handle_type *a, source_handle_type *b, mode _mode = mode::write, flag flags = flag::none,
-                             byte_io_multiplexer *ctx = nullptr, Args &&...args)
-        : _base(a, b, _mode, flags, ctx, std::forward<Args>(args)...)
+    combining_handle_adapter(target_handle_type *a, source_handle_type *b, mode _mode = mode::write, flag flags = flag::none, Args &&...args)
+        : _base(a, b, _mode, flags, std::forward<Args>(args)...)
     {
     }
 

@@ -88,17 +88,6 @@ Distributed under the Boost Software License, Version 1.0.
 #define LLFIO_EXPERIMENTAL_STATUS_CODE 0
 #endif
 
-// Exclude deprecated stuff by default
-#ifndef LLFIO_EXCLUDE_DYNAMIC_THREAD_POOL_GROUP
-#define LLFIO_EXCLUDE_DYNAMIC_THREAD_POOL_GROUP 1
-#endif
-#ifndef LLFIO_EXCLUDE_NETWORKING
-#define LLFIO_EXCLUDE_NETWORKING 1
-#endif
-#ifndef LLFIO_DISABLE_OPENSSL
-#define LLFIO_DISABLE_OPENSSL 1
-#endif
-
 
 #if defined(_WIN32)
 #if !defined(_WIN32_WINNT)

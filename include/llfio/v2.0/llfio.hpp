@@ -63,15 +63,9 @@ import LLFIO_MODULE_NAME;
 #include "utils.hpp"
 
 #include "directory_handle.hpp"
-#ifndef LLFIO_EXCLUDE_DYNAMIC_THREAD_POOL_GROUP
-#include "dynamic_thread_pool_group.hpp"
-#endif
 #include "fast_random_file_handle.hpp"
 #include "file_handle.hpp"
 #include "process_handle.hpp"
-#ifndef LLFIO_EXCLUDE_NETWORKING
-#include "tls_socket_handle.hpp"
-#endif
 #include "statfs.hpp"
 #ifdef LLFIO_INCLUDE_STORAGE_PROFILE
 #include "storage_profile.hpp"

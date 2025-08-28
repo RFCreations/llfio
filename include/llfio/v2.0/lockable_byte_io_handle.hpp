@@ -76,13 +76,13 @@ public:
   constexpr lockable_byte_io_handle() {}  // NOLINT
   ~lockable_byte_io_handle() = default;
   //! Construct a handle from a supplied native handle
-  constexpr explicit lockable_byte_io_handle(native_handle_type h, flag flags, byte_io_multiplexer *ctx)
-      : byte_io_handle(h, flags, ctx)
+  constexpr explicit lockable_byte_io_handle(native_handle_type h, flag flags)
+      : byte_io_handle(h, flags)
   {
   }
   //! Explicit conversion from `handle` permitted
-  explicit constexpr lockable_byte_io_handle(handle &&o, byte_io_multiplexer *ctx) noexcept
-      : byte_io_handle(std::move(o), ctx)
+  explicit constexpr lockable_byte_io_handle(handle &&o) noexcept
+      : byte_io_handle(std::move(o))
   {
   }
   //! Explicit conversion from `byte_io_handle` permitted

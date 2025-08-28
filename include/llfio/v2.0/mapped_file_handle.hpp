@@ -536,49 +536,25 @@ public:
   }
 
   //! The memory section this handle is using
-  const section_handle &section() const noexcept
-  {
-    return _sh;
-  }
+  const section_handle &section() const noexcept { return _sh; }
   //! The memory section this handle is using
-  section_handle &section() noexcept
-  {
-    return _sh;
-  }
+  section_handle &section() noexcept { return _sh; }
 
   //! The map this handle is using
-  const map_handle &map() const noexcept
-  {
-    return _mh;
-  }
+  const map_handle &map() const noexcept { return _mh; }
   //! The map this handle is using
-  map_handle &map() noexcept
-  {
-    return _mh;
-  }
+  map_handle &map() noexcept { return _mh; }
 
   //! The address in memory where this mapped file currently resides
-  byte *address() const noexcept
-  {
-    return _mh.address();
-  }
+  byte *address() const noexcept { return _mh.address(); }
   //! The offset into the backing file from which this mapped file begins
-  extent_type starting_offset() const noexcept
-  {
-    return _offset;
-  }
+  extent_type starting_offset() const noexcept { return _offset; }
 
   //! The page size used by the map, in bytes.
-  size_type page_size() const noexcept
-  {
-    return _mh.page_size();
-  }
+  size_type page_size() const noexcept { return _mh.page_size(); }
 
   //! True if the map is of non-volatile RAM
-  bool is_nvram() const noexcept
-  {
-    return _mh.is_nvram();
-  }
+  bool is_nvram() const noexcept { return _mh.is_nvram(); }
 
   //! The maximum extent of the underlying file, minus any offset.
   result<extent_type> underlying_file_maximum_extent() const noexcept
@@ -592,10 +568,7 @@ public:
   }
 
   //! The address space (to be) reserved for future expansion of this file.
-  size_type capacity() const noexcept
-  {
-    return _reservation;
-  }
+  size_type capacity() const noexcept { return _reservation; }
 
   /*! \brief Reserve a new amount of address space for mapping future expansion of this file.
   \param reservation The number of bytes of virtual address space to reserve. Zero means reserve
@@ -633,11 +606,6 @@ public:
     }
   }
   LLFIO_DEADLINE_TRY_FOR_UNTIL(reopen)
-  LLFIO_HEADERS_ONLY_VIRTUAL_SPEC result<void> set_multiplexer(byte_io_multiplexer *c = this_thread::multiplexer()) noexcept override
-  {
-    OUTCOME_TRY(file_handle::set_multiplexer(c));
-    return _mh.set_multiplexer(file_handle::multiplexer());
-  }
   /*! \brief Return the current maximum permitted extent of the file, after updating the map.
 
   Firstly calls `update_map()` to efficiently update the map to match that of the underlying

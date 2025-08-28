@@ -25,7 +25,7 @@ Distributed under the Boost Software License, Version 1.0.
 #ifndef LLFIO_IO_HANDLE_H
 #define LLFIO_IO_HANDLE_H
 
-#include "byte_io_multiplexer.hpp"
+#include "handle.hpp"
 
 //! \file byte_io_handle.hpp Provides a byte-orientated i/o handle
 
@@ -51,33 +51,305 @@ public:
   using creation = handle::creation;
   using caching = handle::caching;
   using flag = handle::flag;
-  using barrier_kind = byte_io_multiplexer::barrier_kind;
-  using buffer_type = byte_io_multiplexer::buffer_type;
-  using const_buffer_type = byte_io_multiplexer::const_buffer_type;
-  using buffers_type = byte_io_multiplexer::buffers_type;
-  using const_buffers_type = byte_io_multiplexer::const_buffers_type;
-  using registered_buffer_type = byte_io_multiplexer::registered_buffer_type;
-  template <class T> using io_request = byte_io_multiplexer::io_request<T>;
-  template <class T> using io_result = byte_io_multiplexer::io_result<T>;
-  template <class T> using awaitable = byte_io_multiplexer::awaitable<T>;
 
-protected:
-  byte_io_multiplexer *_ctx{nullptr};  // +4 or +8 bytes
+  //! The kinds of write reordering barrier which can be performed.
+  enum class barrier_kind : uint8_t
+  {
+    nowait_view_only,  //!< Barrier mapped data only, non-blocking. This is highly optimised on NV-DIMM storage, but consider using `nvram_barrier()` for even better performance.
+    wait_view_only,  //!< Barrier mapped data only, block until it is done. This is highly optimised on NV-DIMM storage, but consider using `nvram_barrier()` for even better performance.
+    nowait_data_only,  //!< Barrier data only, non-blocking. This is highly optimised on NV-DIMM storage, but consider using `nvram_barrier()` for even better performance.
+    wait_data_only,  //!< Barrier data only, block until it is done. This is highly optimised on NV-DIMM storage, but consider using `nvram_barrier()` for even better performance.
+    nowait_all,  //!< Barrier data and the metadata to retrieve it, non-blocking.
+    wait_all     //!< Barrier data and the metadata to retrieve it, block until it is done.
+  };
+
+  //! The scatter buffer type used by this handle. Guaranteed to be `TrivialType` and `StandardLayoutType`.
+  //! Try to make address and length 64 byte, or ideally, `page_size()` aligned where possible.
+  struct buffer_type
+  {
+    //! Type of the pointer to memory.
+    using pointer = byte *;
+    //! Type of the pointer to memory.
+    using const_pointer = const byte *;
+    //! Type of the iterator to memory.
+    using iterator = byte *;
+    //! Type of the iterator to memory.
+    using const_iterator = const byte *;
+    //! Type of the length of memory.
+    using size_type = size_t;
+
+  private:
+    struct _implict_span_constructor_tag
+    {
+    };
+
+  public:
+    //! Default constructor
+    buffer_type() = default;
+    //! Constructor
+    constexpr buffer_type(pointer data, size_type len) noexcept
+        : _data(data)
+        , _len(len)
+    {
+    }
+    //! Constructor taking any type acceptable to `span`.
+    LLFIO_TEMPLATE(class T)
+    LLFIO_TREQUIRES(LLFIO_TPRED(!std::is_same<typename std::decay<T>::type, buffer_type>::value && std::is_constructible<span<byte>, T>::value))
+    constexpr buffer_type(T &&s, _implict_span_constructor_tag = {}) noexcept
+        : _data(span<byte>(s).data())
+        , _len(span<byte>(s).size())
+    {
+    }
+    buffer_type(const buffer_type &) = default;
+    buffer_type(buffer_type &&) = default;
+    buffer_type &operator=(const buffer_type &) = default;
+    buffer_type &operator=(buffer_type &&) = default;
+    ~buffer_type() = default;
+
+    // Emulation of this being a span<byte> in the TS
+
+    //! Returns if this buffer is empty
+    LLFIO_NODISCARD constexpr bool empty() const noexcept { return _len == 0; }
+    //! Returns the address of the bytes for this buffer
+    constexpr pointer data() noexcept { return _data; }
+    //! Returns the address of the bytes for this buffer
+    constexpr const_pointer data() const noexcept { return _data; }
+    //! Returns the number of bytes in this buffer
+    constexpr size_type size() const noexcept { return _len; }
+
+    //! Returns an iterator to the beginning of the buffer
+    constexpr iterator begin() noexcept { return _data; }
+    //! Returns an iterator to the beginning of the buffer
+    constexpr const_iterator begin() const noexcept { return _data; }
+    //! Returns an iterator to the beginning of the buffer
+    constexpr const_iterator cbegin() const noexcept { return _data; }
+    //! Returns an iterator to after the end of the buffer
+    constexpr iterator end() noexcept { return _data + _len; }
+    //! Returns an iterator to after the end of the buffer
+    constexpr const_iterator end() const noexcept { return _data + _len; }
+    //! Returns an iterator to after the end of the buffer
+    constexpr const_iterator cend() const noexcept { return _data + _len; }
+
+  private:
+    friend constexpr inline void _check_iovec_match();
+    pointer _data;
+    size_type _len;
+  };
+
+  //! The gather buffer type used by this handle. Guaranteed to be `TrivialType` and `StandardLayoutType`.
+  //! Try to make address and length 64 byte, or ideally, `page_size()` aligned where possible.
+  struct const_buffer_type
+  {
+    //! Type of the pointer to memory.
+    using pointer = const byte *;
+    //! Type of the pointer to memory.
+    using const_pointer = const byte *;
+    //! Type of the iterator to memory.
+    using iterator = const byte *;
+    //! Type of the iterator to memory.
+    using const_iterator = const byte *;
+    //! Type of the length of memory.
+    using size_type = size_t;
+
+  private:
+    struct _implict_span_constructor_tag
+    {
+    };
+
+  public:
+    //! Default constructor
+    const_buffer_type() = default;
+    //! Constructor
+    constexpr const_buffer_type(pointer data, size_type len) noexcept
+        : _data(data)
+        , _len(len)
+    {
+    }
+    //! Converting constructor from non-const buffer type
+    constexpr const_buffer_type(buffer_type b) noexcept
+        : _data(b.data())
+        , _len(b.size())
+    {
+    }
+    //! Constructor taking any type acceptable to `span`.
+    LLFIO_TEMPLATE(class T)
+    LLFIO_TREQUIRES(LLFIO_TPRED(!std::is_same<typename std::decay<T>::type, buffer_type>::value && std::is_constructible<span<const byte>, T>::value))
+    constexpr const_buffer_type(T &&s, _implict_span_constructor_tag = {}) noexcept
+        : _data(span<const byte>(s).data())
+        , _len(span<const byte>(s).size())
+    {
+    }
+    const_buffer_type(const const_buffer_type &) = default;
+    const_buffer_type(const_buffer_type &&) = default;
+    const_buffer_type &operator=(const const_buffer_type &) = default;
+    const_buffer_type &operator=(const_buffer_type &&) = default;
+    ~const_buffer_type() = default;
+
+    // Emulation of this being a span<byte> in the TS
+
+    //! Returns if this buffer is empty
+    LLFIO_NODISCARD constexpr bool empty() const noexcept { return _len == 0; }
+    //! Returns the address of the bytes for this buffer
+    constexpr pointer data() noexcept { return _data; }
+    //! Returns the address of the bytes for this buffer
+    constexpr const_pointer data() const noexcept { return _data; }
+    //! Returns the number of bytes in this buffer
+    constexpr size_type size() const noexcept { return _len; }
+
+    //! Returns an iterator to the beginning of the buffer
+    constexpr iterator begin() noexcept { return _data; }
+    //! Returns an iterator to the beginning of the buffer
+    constexpr const_iterator begin() const noexcept { return _data; }
+    //! Returns an iterator to the beginning of the buffer
+    constexpr const_iterator cbegin() const noexcept { return _data; }
+    //! Returns an iterator to after the end of the buffer
+    constexpr iterator end() noexcept { return _data + _len; }
+    //! Returns an iterator to after the end of the buffer
+    constexpr const_iterator end() const noexcept { return _data + _len; }
+    //! Returns an iterator to after the end of the buffer
+    constexpr const_iterator cend() const noexcept { return _data + _len; }
+
+  private:
+    pointer _data;
+    size_type _len;
+  };
+#ifndef NDEBUG
+  static_assert(std::is_trivial<buffer_type>::value, "buffer_type is not a trivial type!");
+  static_assert(std::is_trivial<const_buffer_type>::value, "const_buffer_type is not a trivial type!");
+  static_assert(std::is_standard_layout<buffer_type>::value, "buffer_type is not a standard layout type!");
+  static_assert(std::is_standard_layout<const_buffer_type>::value, "const_buffer_type is not a standard layout type!");
+#endif
+
+  struct _registered_buffer_type : std::enable_shared_from_this<_registered_buffer_type>, span<byte>
+  {
+    using span<byte>::span;
+    explicit _registered_buffer_type(span<byte> o)
+        : span<byte>(o)
+    {
+    }
+    _registered_buffer_type() = default;
+    _registered_buffer_type(const _registered_buffer_type &) = default;
+    _registered_buffer_type(_registered_buffer_type &&) = default;
+    _registered_buffer_type &operator=(const _registered_buffer_type &) = default;
+    _registered_buffer_type &operator=(_registered_buffer_type &&) = default;
+    ~_registered_buffer_type() = default;
+  };
+  //! The registered buffer type used by this handle.
+  using registered_buffer_type = std::shared_ptr<_registered_buffer_type>;
+
+  //! The scatter buffers type used by this handle. Guaranteed to be `TrivialType` apart from construction, and `StandardLayoutType`.
+  using buffers_type = span<buffer_type>;
+  //! The gather buffers type used by this handle. Guaranteed to be `TrivialType` apart from construction, and `StandardLayoutType`.
+  using const_buffers_type = span<const_buffer_type>;
+#ifndef NDEBUG
+  // Is trivial in all ways, except default constructibility
+  static_assert(std::is_trivially_copyable<buffers_type>::value, "buffers_type is not trivially copyable!");
+  // static_assert(std::is_trivially_assignable<buffers_type, buffers_type>::value, "buffers_type is not trivially assignable!");
+  // static_assert(std::is_trivially_destructible<buffers_type>::value, "buffers_type is not trivially destructible!");
+  // static_assert(std::is_trivially_copy_constructible<buffers_type>::value, "buffers_type is not trivially copy constructible!");
+  // static_assert(std::is_trivially_move_constructible<buffers_type>::value, "buffers_type is not trivially move constructible!");
+  // static_assert(std::is_trivially_copy_assignable<buffers_type>::value, "buffers_type is not trivially copy assignable!");
+  // static_assert(std::is_trivially_move_assignable<buffers_type>::value, "buffers_type is not trivially move assignable!");
+#if !defined(_MSC_VER) || _MSC_VER < 1926
+  static_assert(std::is_standard_layout<buffers_type>::value, "buffers_type is not a standard layout type!");
+#endif
+#endif
+
+  //! The i/o request type used by this handle. Guaranteed to be `TrivialType` apart from construction, and `StandardLayoutType`.
+  template <class T> struct io_request
+  {
+    T buffers{};
+    extent_type offset{0};
+    constexpr io_request() {}  // NOLINT (defaulting this breaks clang and GCC, so don't do it!)
+    constexpr io_request(T _buffers, extent_type _offset = (extent_type) -1)
+        : buffers(std::move(_buffers))
+        , offset(_offset)
+    {
+    }
+  };
+#ifndef NDEBUG
+  // Is trivial in all ways, except default constructibility
+  static_assert(std::is_trivially_copyable<io_request<buffers_type>>::value, "io_request<buffers_type> is not trivially copyable!");
+  // static_assert(std::is_trivially_assignable<io_request<buffers_type>, io_request<buffers_type>>::value, "io_request<buffers_type> is not trivially
+  // assignable!"); static_assert(std::is_trivially_destructible<io_request<buffers_type>>::value, "io_request<buffers_type> is not trivially destructible!");
+  // static_assert(std::is_trivially_copy_constructible<io_request<buffers_type>>::value, "io_request<buffers_type> is not trivially copy constructible!");
+  // static_assert(std::is_trivially_move_constructible<io_request<buffers_type>>::value, "io_request<buffers_type> is not trivially move constructible!");
+  // static_assert(std::is_trivially_copy_assignable<io_request<buffers_type>>::value, "io_request<buffers_type> is not trivially copy assignable!");
+  // static_assert(std::is_trivially_move_assignable<io_request<buffers_type>>::value, "io_request<buffers_type> is not trivially move assignable!");
+#if !defined(_MSC_VER) || _MSC_VER < 1926
+  static_assert(std::is_standard_layout<io_request<buffers_type>>::value, "io_request<buffers_type> is not a standard layout type!");
+#endif
+#endif
+  //! The i/o result type used by this handle. Guaranteed to be `TrivialType` apart from construction.
+  template <class T> struct io_result : public LLFIO_V2_NAMESPACE::result<T>
+  {
+    using Base = LLFIO_V2_NAMESPACE::result<T>;
+    size_type _bytes_transferred{static_cast<size_type>(-1)};
+
+#if defined(_MSC_VER) && _MSC_VER < 1930 /*VS2022*/ && !defined(__clang__)  // workaround MSVC parsing bug
+    constexpr io_result()
+        : Base()
+    {
+    }
+    template <class... Args>
+    constexpr io_result(Args &&...args)
+        : Base(std::forward<Args>(args)...)
+    {
+    }
+#else
+    using Base::Base;
+    io_result() = default;
+#endif
+    ~io_result() = default;
+    io_result &operator=(io_result &&) = default;  // NOLINT
+#if LLFIO_EXPERIMENTAL_STATUS_CODE
+    io_result(const io_result &) = delete;
+    io_result &operator=(const io_result &) = delete;
+#else
+    io_result(const io_result &) = default;
+    io_result &operator=(const io_result &) = default;
+#endif
+    io_result(io_result &&) = default;  // NOLINT
+    //! Returns bytes transferred
+    size_type bytes_transferred() noexcept
+    {
+      if(_bytes_transferred == static_cast<size_type>(-1))
+      {
+        _bytes_transferred = 0;
+        for(auto &i : this->value())
+        {
+          _bytes_transferred += i.size();
+        }
+      }
+      return _bytes_transferred;
+    }
+  };
+#if !defined(NDEBUG) && !LLFIO_EXPERIMENTAL_STATUS_CODE
+  // Is trivial in all ways, except default constructibility
+  static_assert(std::is_trivially_copyable<io_result<buffers_type>>::value, "io_result<buffers_type> is not trivially copyable!");
+// static_assert(std::is_trivially_assignable<io_result<buffers_type>, io_result<buffers_type>>::value, "io_result<buffers_type> is not trivially assignable!");
+// static_assert(std::is_trivially_destructible<io_result<buffers_type>>::value, "io_result<buffers_type> is not trivially destructible!");
+// static_assert(std::is_trivially_copy_constructible<io_result<buffers_type>>::value, "io_result<buffers_type> is not trivially copy constructible!");
+// static_assert(std::is_trivially_move_constructible<io_result<buffers_type>>::value, "io_result<buffers_type> is not trivially move constructible!");
+// static_assert(std::is_trivially_copy_assignable<io_result<buffers_type>>::value, "io_result<buffers_type> is not trivially copy assignable!");
+// static_assert(std::is_trivially_move_assignable<io_result<buffers_type>>::value, "io_result<buffers_type> is not trivially move assignable!");
+//! \todo Why is io_result<buffers_type> not a standard layout type?
+// static_assert(std::is_standard_layout<result<buffers_type>>::value, "result<buffers_type> is not a standard layout type!");
+// static_assert(std::is_standard_layout<io_result<buffers_type>>::value, "io_result<buffers_type> is not a standard layout type!");
+#endif
 
 public:
   //! Default constructor
   constexpr byte_io_handle() {}  // NOLINT
   ~byte_io_handle() = default;
   //! Construct a handle from a supplied native handle
-  constexpr explicit byte_io_handle(native_handle_type h, flag flags, byte_io_multiplexer *ctx)
+  constexpr explicit byte_io_handle(native_handle_type h, flag flags)
       : handle(h, flags)
-      , _ctx(ctx)
   {
   }
   //! Explicit conversion from handle permitted
-  explicit constexpr byte_io_handle(handle &&o, byte_io_multiplexer *ctx) noexcept
+  explicit constexpr byte_io_handle(handle &&o) noexcept
       : handle(std::move(o))
-      , _ctx(ctx)
   {
   }
   //! Move construction permitted
@@ -89,130 +361,15 @@ public:
   //! No copy assignment
   byte_io_handle &operator=(const byte_io_handle &) = delete;
 
-  LLFIO_MAKE_FREE_FUNCTION
-  LLFIO_HEADERS_ONLY_VIRTUAL_SPEC result<void> close() noexcept override
-  {
-    if(_ctx != nullptr)
-    {
-      OUTCOME_TRY(set_multiplexer(nullptr));
-    }
-    return handle::close();
-  }
-
-  /*! \brief The i/o multiplexer this handle will use to multiplex i/o. If this returns null,
-  then this handle has not been registered with an i/o multiplexer yet.
-  */
-  byte_io_multiplexer *multiplexer() const noexcept { return _ctx; }
-
-  /*! \brief Sets the i/o multiplexer this handle will use to implement `read()`, `write()` and `barrier()`.
-
-  Note that this call deregisters this handle from any existing i/o multiplexer, and registers
-  it with the new i/o multiplexer. You must therefore not call it if any i/o is currently
-  outstanding on this handle. You should also be aware that multiple dynamic memory
-  allocations and deallocations may occur, as well as multiple syscalls (i.e. this is
-  an expensive call, try to do it from cold code).
-
-  If the handle was not created as multiplexable, this call always fails.
-
-  \mallocs Multiple dynamic memory allocations and deallocations.
-  */
-  virtual result<void> set_multiplexer(byte_io_multiplexer *c = this_thread::multiplexer()) noexcept;  // implementation is below
-
 protected:
-  //! The virtualised implementation of `max_buffers()` used if no multiplexer has been set.
+  //! The virtualised implementation of `max_buffers()` used.
   LLFIO_HEADERS_ONLY_VIRTUAL_SPEC size_t _do_max_buffers() const noexcept;
-  //! The virtualised implementation of `allocate_registered_buffer()` used if no multiplexer has been set.
-  LLFIO_HEADERS_ONLY_VIRTUAL_SPEC result<registered_buffer_type>
-  _do_allocate_registered_buffer(size_t &bytes) noexcept;  // default implementation is in map_handle.hpp
   //! The virtualised implementation of `read()` used if no multiplexer has been set.
   LLFIO_HEADERS_ONLY_VIRTUAL_SPEC io_result<buffers_type> _do_read(io_request<buffers_type> reqs, deadline d) noexcept;
-  //! The virtualised implementation of `read()` used if no multiplexer has been set.
-  LLFIO_HEADERS_ONLY_VIRTUAL_SPEC io_result<buffers_type> _do_read(registered_buffer_type base, io_request<buffers_type> reqs, deadline d) noexcept
-  {
-    (void) base;
-    return byte_io_handle::_do_read(reqs, d);
-  }
-  //! The virtualised implementation of `write()` used if no multiplexer has been set.
+  //! The virtualised implementation of `write()` used.
   LLFIO_HEADERS_ONLY_VIRTUAL_SPEC io_result<const_buffers_type> _do_write(io_request<const_buffers_type> reqs, deadline d) noexcept;
-  //! The virtualised implementation of `write()` used if no multiplexer has been set.
-  LLFIO_HEADERS_ONLY_VIRTUAL_SPEC io_result<const_buffers_type> _do_write(registered_buffer_type base, io_request<const_buffers_type> reqs, deadline d) noexcept
-  {
-    (void) base;
-    return byte_io_handle::_do_write(reqs, d);
-  }
-  //! The virtualised implementation of `barrier()` used if no multiplexer has been set.
+  //! The virtualised implementation of `barrier()` used.
   LLFIO_HEADERS_ONLY_VIRTUAL_SPEC io_result<const_buffers_type> _do_barrier(io_request<const_buffers_type> reqs, barrier_kind kind, deadline d) noexcept;
-
-  io_result<buffers_type> _do_multiplexer_read(registered_buffer_type &&base, io_request<buffers_type> reqs, deadline d) noexcept
-  {
-    LLFIO_DEADLINE_TO_SLEEP_INIT(d);
-    const auto state_reqs = _ctx->io_state_requirements();
-    auto *storage = (byte *) alloca(state_reqs.first + state_reqs.second);
-    const auto diff = (uintptr_t) storage & (state_reqs.second - 1);
-    storage += state_reqs.second - diff;
-    auto *state = _ctx->construct_and_init_io_operation({storage, state_reqs.first}, this, nullptr, std::move(base), d, std::move(reqs));
-    if(state == nullptr)
-    {
-      return errc::resource_unavailable_try_again;
-    }
-    OUTCOME_TRY(_ctx->flush_inited_io_operations());
-    while(!is_finished(_ctx->check_io_operation(state)))
-    {
-      deadline nd;
-      LLFIO_DEADLINE_TO_PARTIAL_DEADLINE(nd, d);
-      OUTCOME_TRY(_ctx->check_for_any_completed_io(nd));
-    }
-    io_result<buffers_type> ret = std::move(*state).get_completed_read();
-    state->~io_operation_state();
-    return ret;
-  }
-  io_result<const_buffers_type> _do_multiplexer_write(registered_buffer_type &&base, io_request<const_buffers_type> reqs, deadline d) noexcept
-  {
-    LLFIO_DEADLINE_TO_SLEEP_INIT(d);
-    const auto state_reqs = _ctx->io_state_requirements();
-    auto *storage = (byte *) alloca(state_reqs.first + state_reqs.second);
-    const auto diff = (uintptr_t) storage & (state_reqs.second - 1);
-    storage += state_reqs.second - diff;
-    auto *state = _ctx->construct_and_init_io_operation({storage, state_reqs.first}, this, nullptr, std::move(base), d, std::move(reqs));
-    if(state == nullptr)
-    {
-      return errc::resource_unavailable_try_again;
-    }
-    OUTCOME_TRY(_ctx->flush_inited_io_operations());
-    while(!is_finished(_ctx->check_io_operation(state)))
-    {
-      deadline nd;
-      LLFIO_DEADLINE_TO_PARTIAL_DEADLINE(nd, d);
-      OUTCOME_TRY(_ctx->check_for_any_completed_io(nd));
-    }
-    io_result<const_buffers_type> ret = std::move(*state).get_completed_write_or_barrier();
-    state->~io_operation_state();
-    return ret;
-  }
-  io_result<const_buffers_type> _do_multiplexer_barrier(registered_buffer_type &&base, io_request<const_buffers_type> reqs, barrier_kind kind,
-                                                        deadline d) noexcept
-  {
-    LLFIO_DEADLINE_TO_SLEEP_INIT(d);
-    const auto state_reqs = _ctx->io_state_requirements();
-    auto *storage = (byte *) alloca(state_reqs.first + state_reqs.second);
-    const auto diff = (uintptr_t) storage & (state_reqs.second - 1);
-    storage += state_reqs.second - diff;
-    auto *state = _ctx->construct_and_init_io_operation({storage, state_reqs.first}, this, nullptr, std::move(base), d, std::move(reqs), kind);
-    if(state == nullptr)
-    {
-      return errc::resource_unavailable_try_again;
-    }
-    OUTCOME_TRY(_ctx->flush_inited_io_operations());
-    while(!is_finished(_ctx->check_io_operation(state)))
-    {
-      deadline nd;
-      LLFIO_DEADLINE_TO_PARTIAL_DEADLINE(nd, d);
-      OUTCOME_TRY(_ctx->check_for_any_completed_io(nd));
-    }
-    io_result<const_buffers_type> ret = std::move(*state).get_completed_write_or_barrier();
-    state->~io_operation_state();
-    return ret;
-  }
 
 public:
   /*! \brief The *maximum* number of buffers which a single read or write syscall can (atomically)
@@ -236,43 +393,7 @@ public:
   For handles which implement i/o entirely in user space, and thus syscalls are not involved,
   this function will return `0`.
   */
-  size_t max_buffers() const noexcept
-  {
-    if(_ctx == nullptr)
-    {
-      return _do_max_buffers();
-    }
-    return _ctx->do_byte_io_handle_max_buffers(this);
-  }
-
-  /*! \brief Request the allocation of a new registered i/o buffer with the system suitable
-  for maximum performance i/o, preferentially using any i/o multiplexer set over the
-  virtually overridable per-class implementation.
-
-  \return A shared pointer to the i/o buffer. Note that the pointer returned is not
-  the resource under management, using shared ptr's aliasing feature.
-  \param bytes The size of the i/o buffer requested. This may be rounded (considerably)
-  upwards, you should always use the value returned.
-
-  Some i/o multiplexer implementations have the ability to allocate i/o buffers in special
-  memory shared between the i/o hardware and user space processes. Using registered i/o
-  buffers can entirely eliminate all kernel transitions and memory copying during i/o, and
-  can saturate very high end hardware from a single kernel thread.
-
-  If no multiplexer is set, the default implementation uses `map_handle` to allocate raw
-  memory pages from the OS kernel. If the requested buffer size is a multiple of one of
-  the larger page sizes from `utils::page_sizes()`, an attempt to satisfy the request
-  using the larger page size will be attempted first.
-  */
-  LLFIO_MAKE_FREE_FUNCTION
-  result<registered_buffer_type> allocate_registered_buffer(size_t &bytes) noexcept
-  {
-    if(_ctx == nullptr)
-    {
-      return _do_allocate_registered_buffer(bytes);
-    }
-    return _ctx->do_byte_io_handle_allocate_registered_buffer(this, bytes);
-  }
+  size_t max_buffers() const noexcept { return _do_max_buffers(); }
 
   /*! \brief Read data from the open handle, preferentially using any i/o multiplexer set over the
   virtually overridable per-class implementation.
@@ -294,16 +415,7 @@ public:
   \mallocs The default synchronous implementation in file_handle performs no memory allocation.
   */
   LLFIO_MAKE_FREE_FUNCTION
-  io_result<buffers_type> read(io_request<buffers_type> reqs, deadline d = deadline()) noexcept
-  {
-    return (_ctx == nullptr) ? _do_read(reqs, d) : _do_multiplexer_read({}, reqs, d);
-  }
-  //! \overload
-  LLFIO_MAKE_FREE_FUNCTION
-  io_result<buffers_type> read(registered_buffer_type base, io_request<buffers_type> reqs, deadline d = deadline()) noexcept
-  {
-    return (_ctx == nullptr) ? _do_read(std::move(base), reqs, d) : _do_multiplexer_read(std::move(base), reqs, d);
-  }
+  io_result<buffers_type> read(io_request<buffers_type> reqs, deadline d = deadline()) noexcept { return _do_read(reqs, d); }
   //! \overload
   LLFIO_MAKE_FREE_FUNCTION
   io_result<size_type> read(extent_type offset, std::initializer_list<buffer_type> lst, deadline d = deadline()) noexcept
@@ -342,16 +454,7 @@ public:
   \mallocs The default synchronous implementation in file_handle performs no memory allocation.
   */
   LLFIO_MAKE_FREE_FUNCTION
-  io_result<const_buffers_type> write(io_request<const_buffers_type> reqs, deadline d = deadline()) noexcept
-  {
-    return (_ctx == nullptr) ? _do_write(reqs, d) : _do_multiplexer_write({}, std::move(reqs), d);
-  }
-  //! \overload
-  LLFIO_MAKE_FREE_FUNCTION
-  io_result<const_buffers_type> write(registered_buffer_type base, io_request<const_buffers_type> reqs, deadline d = deadline()) noexcept
-  {
-    return (_ctx == nullptr) ? _do_write(std::move(base), reqs, d) : _do_multiplexer_write(std::move(base), std::move(reqs), d);
-  }
+  io_result<const_buffers_type> write(io_request<const_buffers_type> reqs, deadline d = deadline()) noexcept { return _do_write(reqs, d); }
   //! \overload
   LLFIO_MAKE_FREE_FUNCTION
   io_result<size_type> write(extent_type offset, std::initializer_list<const_buffer_type> lst, deadline d = deadline()) noexcept
@@ -402,234 +505,16 @@ public:
   LLFIO_HEADERS_ONLY_VIRTUAL_SPEC io_result<const_buffers_type> barrier(io_request<const_buffers_type> reqs = io_request<const_buffers_type>(),
                                                                         barrier_kind kind = barrier_kind::nowait_data_only, deadline d = deadline()) noexcept
   {
-    return (_ctx == nullptr) ? _do_barrier(reqs, kind, d) : _do_multiplexer_barrier({}, std::move(reqs), kind, d);
+    return _do_barrier(reqs, kind, d);
   }
   //! \overload
   LLFIO_MAKE_FREE_FUNCTION
   io_result<const_buffers_type> barrier(barrier_kind kind, deadline d = deadline()) noexcept { return barrier(io_request<const_buffers_type>(), kind, d); }
 
   LLFIO_DEADLINE_TRY_FOR_UNTIL(barrier)
-
-public:
-  /*! \brief A coroutinised equivalent to `.read()` which suspends the coroutine until
-  the i/o finishes. **Blocks execution** i.e is equivalent to `.read()` if no i/o multiplexer
-  has been set on this handle!
-
-  The awaitable returned is **eager** i.e. it immediately begins the i/o. If the i/o completes
-  and finishes immediately, no coroutine suspension occurs.
-  */
-  LLFIO_MAKE_FREE_FUNCTION
-  awaitable<io_result<buffers_type>> co_read(io_request<buffers_type> reqs, deadline d = deadline()) noexcept
-  {
-    if(_ctx == nullptr)
-    {
-      return awaitable<io_result<buffers_type>>(read(std::move(reqs), d));
-    }
-    awaitable<io_result<buffers_type>> ret;
-    ret.set_state(_ctx->construct(ret._state_storage, this, nullptr, {}, d, std::move(reqs)));
-    return ret;
-  }
-  //! \overload
-  LLFIO_MAKE_FREE_FUNCTION
-  awaitable<io_result<buffers_type>> co_read(registered_buffer_type base, io_request<buffers_type> reqs, deadline d = deadline()) noexcept
-  {
-    if(_ctx == nullptr)
-    {
-      return awaitable<io_result<buffers_type>>(read(std::move(base), std::move(reqs), d));
-    }
-    awaitable<io_result<buffers_type>> ret;
-    ret.set_state(_ctx->construct(ret._state_storage, this, nullptr, std::move(base), d, std::move(reqs)));
-    return ret;
-  }
-
-  /*! \brief A coroutinised equivalent to `.write()` which suspends the coroutine until
-  the i/o finishes. **Blocks execution** i.e is equivalent to `.write()` if no i/o multiplexer
-  has been set on this handle!
-
-  The awaitable returned is **eager** i.e. it immediately begins the i/o. If the i/o completes
-  and finishes immediately, no coroutine suspension occurs.
-  */
-  LLFIO_MAKE_FREE_FUNCTION
-  awaitable<io_result<const_buffers_type>> co_write(io_request<const_buffers_type> reqs, deadline d = deadline()) noexcept
-  {
-    if(_ctx == nullptr)
-    {
-      return awaitable<io_result<const_buffers_type>>(write(std::move(reqs), d));
-    }
-    awaitable<io_result<const_buffers_type>> ret;
-    ret.set_state(_ctx->construct(ret._state_storage, this, nullptr, {}, d, std::move(reqs)));
-    return ret;
-  }
-  //! \overload
-  LLFIO_MAKE_FREE_FUNCTION
-  awaitable<io_result<const_buffers_type>> co_write(registered_buffer_type base, io_request<const_buffers_type> reqs, deadline d = deadline()) noexcept
-  {
-    if(_ctx == nullptr)
-    {
-      return awaitable<io_result<const_buffers_type>>(write(std::move(base), std::move(reqs), d));
-    }
-    awaitable<io_result<const_buffers_type>> ret;
-    ret.set_state(_ctx->construct(ret._state_storage, this, nullptr, std::move(base), d, std::move(reqs)));
-    return ret;
-  }
-
-  /*! \brief A coroutinised equivalent to `.barrier()` which suspends the coroutine until
-  the i/o finishes. **Blocks execution** i.e is equivalent to `.barrier()` if no i/o multiplexer
-  has been set on this handle!
-
-  The awaitable returned is **eager** i.e. it immediately begins the i/o. If the i/o completes
-  and finishes immediately, no coroutine suspension occurs.
-  */
-  LLFIO_MAKE_FREE_FUNCTION
-  awaitable<io_result<const_buffers_type>> co_barrier(io_request<const_buffers_type> reqs = io_request<const_buffers_type>(),
-                                                      barrier_kind kind = barrier_kind::nowait_data_only, deadline d = deadline()) noexcept
-  {
-    if(_ctx == nullptr)
-    {
-      return awaitable<io_result<const_buffers_type>>(barrier(std::move(reqs), kind, d));
-    }
-    awaitable<io_result<const_buffers_type>> ret;
-    ret.set_state(_ctx->construct(ret._state_storage, this, nullptr, {}, d, std::move(reqs), kind));
-    return ret;
-  }
 };
-static_assert((sizeof(void *) == 4 && sizeof(byte_io_handle) == 20) || (sizeof(void *) == 8 && sizeof(byte_io_handle) == 32),
+static_assert((sizeof(void *) == 4 && sizeof(byte_io_handle) == 16) || (sizeof(void *) == 8 && sizeof(byte_io_handle) == 24),
               "byte_io_handle is not 20 or 32 bytes in size!");
-
-// Out of line definition purely to work around a bug in GCC where if marked inline,
-// its visibility is hidden and links fail
-inline result<void> byte_io_handle::set_multiplexer(byte_io_multiplexer *c) noexcept
-{
-  if(!is_multiplexable())
-  {
-    return errc::operation_not_supported;
-  }
-  if(c == _ctx)
-  {
-    return success();
-  }
-  if(_ctx != nullptr)
-  {
-    OUTCOME_TRY(_ctx->do_byte_io_handle_deregister(this));
-    _ctx = nullptr;
-  }
-  if(c != nullptr)
-  {
-    OUTCOME_TRY(auto &&state, c->do_byte_io_handle_register(this));
-    _v.behaviour = (_v.behaviour & ~(native_handle_type::disposition::_multiplexer_state_bit0 | native_handle_type::disposition::_multiplexer_state_bit1));
-    if((state & 1) != 0)
-    {
-      _v.behaviour |= native_handle_type::disposition::_multiplexer_state_bit0;
-    }
-    if((state & 2) != 0)
-    {
-      _v.behaviour |= native_handle_type::disposition::_multiplexer_state_bit1;
-    }
-  }
-  _ctx = c;
-  return success();
-}
-
-inline size_t byte_io_multiplexer::do_byte_io_handle_max_buffers(const byte_io_handle *h) const noexcept
-{
-  return h->_do_max_buffers();
-}
-inline result<byte_io_multiplexer::registered_buffer_type> byte_io_multiplexer::do_byte_io_handle_allocate_registered_buffer(byte_io_handle *h,
-                                                                                                                             size_t &bytes) noexcept
-{
-  return h->_do_allocate_registered_buffer(bytes);
-}
-template <class T> inline bool byte_io_multiplexer::awaitable<T>::await_ready() noexcept
-{
-  auto state = _state->current_state();
-  if(is_initialised(state))
-  {
-    // Begin the i/o
-    state = _state->h->multiplexer()->init_io_operation(_state);
-    // std::cout << "Coroutine " << _state << " begins i/o, state on return was " << (int) state << std::endl;
-  }
-  return is_finished(state);
-}
-template <class T> inline byte_io_multiplexer::awaitable<T>::~awaitable()
-{
-  if(_state != nullptr)
-  {
-    auto state = _state->current_state();
-    if(state != io_operation_state_type::unknown && !is_initialised(state) && !is_finished(state))
-    {
-#if LLFIO_ENABLE_COROUTINES
-      // Resumption of the coroutine at this point causes recursion into this destructor, so prevent that
-      _coro = {};
-#endif
-      state = _state->h->multiplexer()->check_io_operation(_state);
-      if(!is_completed(state))
-      {
-        // Cancel the i/o
-        (void) _state->h->multiplexer()->cancel_io_operation(_state);
-      }
-      while(!is_finished(state))
-      {
-        // Block forever until I finish
-        (void) _state->h->multiplexer()->check_for_any_completed_io({});
-        state = _state->current_state();
-      }
-    }
-    _state->~io_operation_state();
-  }
-}
-
-//! What to poll
-QUICKCPPLIB_BITFIELD_BEGIN_T(poll_what, uint8_t)  //
-{
-none = 0U,  //!< Query nothing for this handle.
-
-is_readable = (1U << 0U),  //!< If this handle is readable.
-is_writable = (1U << 1U),  //!< If this handle is writable.
-is_errored = (1U << 2U),   //!< If this handle is errored. This is always set in the output even if not requested.
-is_closed = (1U << 3U),    //!< If this handle is closed/hung up. This is always set in the output even if not requested.
-
-not_pollable = (1U << 7U)  //!< This handle is not pollable.
-}  //
-QUICKCPPLIB_BITFIELD_END(poll_what)
-
-class pollable_handle;
-
-/*! \brief Polls a list of pollable handles awaiting a change in state.
-\return The number of handles with changed state. Handles not `is_kernel_handle()`
-receive `poll_what::not_pollable`.
-\param out An array of `poll_what` set with the results of the poll. The bits in this array are NOT
-cleared by this operation, so you need to clear this manualy before the call if that's what you need.
-\param handles An array of pointers to `handle`. Individual pointers can be null if you want to skip them.
-\param query An array of `poll_what` to check.
-\param d An optional timeout.
-\errors Whatever POSIX `poll()` or Windows `WSAPoll()` can return.
-
-Note that the maximum number of handles which can be passed to this function is 1024
-(the platform syscall may refuse even that many). Note that this function is `O(N)` to
-handle count, so more than a few hundred is a bad idea in any case.
-If you need to wait on more handles than this, you need to implement a `byte_io_multiplexer`
-for your platform.
-
-The sizes of `out`, `handles` and `query` must be the same, or an error is returned.
-
-\note On POSIX `pipe_handle` is a `pollable_handle`, but on Windows it is not. Also,
-on Windows, you cannot mix socket handles from different networking stacks in the same
-poll.
-*/
-LLFIO_HEADERS_ONLY_FUNC_SPEC result<size_t> poll(span<poll_what> out, span<pollable_handle *> handles, span<const poll_what> query, deadline d = {}) noexcept;
-
-/*! \class pollable_handle
-\brief A handle type which can be supplied to `poll()`.
-*/
-class pollable_handle
-{
-  friend LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<size_t> poll(span<poll_what> out, span<pollable_handle *> handles, span<const poll_what> query,
-                                                             deadline d) noexcept;
-  virtual const handle &_get_handle() const noexcept = 0;
-
-public:
-  virtual ~pollable_handle() {}
-};
 
 // BEGIN make_free_functions.py
 /*! \brief Read data from the open handle.
@@ -694,21 +579,9 @@ LLFIO_V2_NAMESPACE_END
 
 #if LLFIO_HEADERS_ONLY == 1 && !defined(DOXYGEN_SHOULD_SKIP_THIS)
 #define LLFIO_INCLUDED_BY_HEADER 1
-#if LLFIO_ENABLE_TEST_IO_MULTIPLEXERS
-#include "detail/impl/test/null_multiplexer.ipp"
-#endif
-
 #ifdef _WIN32
-#if LLFIO_ENABLE_TEST_IO_MULTIPLEXERS
-#include "detail/impl/windows/test/iocp_multiplexer.ipp"
-#else
 #include "detail/impl/windows/byte_io_handle.ipp"
-#endif
 #else
-#if LLFIO_ENABLE_TEST_IO_MULTIPLEXERS
-// #include "detail/impl/posix/test/io_uring_multiplexer.ipp"
-#else
-#endif
 #include "detail/impl/posix/byte_io_handle.ipp"
 #endif
 #undef LLFIO_INCLUDED_BY_HEADER
