@@ -304,6 +304,7 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<size_t> stat_t::fill(const handle &h, sta
     The filing system may store unique numbers per stored file, let's try fetching those.
     */
     bool still_need_dev = true, still_need_ino = true;
+    BY_HANDLE_FILE_INFORMATION bhfi;
 
     // This is a Windows 10 or later API
     FILE_ID_INFORMATION &fii = *reinterpret_cast<FILE_ID_INFORMATION *>(buffer);
@@ -339,6 +340,15 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<size_t> stat_t::fill(const handle &h, sta
         st_ino = ino;
       }
     }
+    else if(GetFileInformationByHandle(h.native_handle().h, &bhfi))
+    {
+      // The FileIdInformation call above fails on SMB, but the basic windows API works
+      still_need_dev = false;
+      still_need_ino = false;
+      st_dev = bhfi.dwVolumeSerialNumber;
+      ++ret;
+      st_ino = bhfi.nFileIndexLow | (uint64_t(bhfi.nFileIndexHigh) << 32);
+    }
     if(still_need_dev)
     {
       // This is a bit hacky, but we just need a unique device number
@@ -350,9 +360,10 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<size_t> stat_t::fill(const handle &h, sta
       }
       buffer_[len] = 0;
       const bool is_harddisk = (memcmp(buffer_, L"\\Device\\HarddiskVolume", 44) == 0);
-      const bool is_unc = (memcmp(buffer_, L"\\Device\\Mup", 22) == 0);
-      if(!is_harddisk && !is_unc)
+      // const bool is_unc = (memcmp(buffer_, L"\\Device\\Mup", 22) == 0); // Unimplemented
+      if(!is_harddisk)
       {
+        st_dev = 0;
         return errc::illegal_byte_sequence;
       }
       if(is_harddisk)
