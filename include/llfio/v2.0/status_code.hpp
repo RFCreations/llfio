@@ -198,26 +198,26 @@ public:
   static inline constexpr const file_io_error_domain &get();
 #endif
 
-  virtual typename _base::payload_info_t payload_info() const noexcept override
-  {
-    return {sizeof(value_type), sizeof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *) + sizeof(value_type),
-            (alignof(value_type) > alignof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *)) ? alignof(value_type) :
-                                                                                             alignof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *)};
-  }
-
 protected:
-  virtual inline string_ref _do_message(const SYSTEM_ERROR2_NAMESPACE::status_code<void> &code) const noexcept override
+  virtual void _do_payload_info(typename _base::_vtable_payload_info_args &args) const noexcept override
   {
-    assert(code.domain() == *this);
-    const auto &v = static_cast<const SYSTEM_ERROR2_NAMESPACE::status_code<file_io_error_domain> &>(code);  // NOLINT
+    args.ret = {sizeof(value_type), sizeof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *) + sizeof(value_type),
+                (alignof(value_type) > alignof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *)) ? alignof(value_type) :
+                                                                                                 alignof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *)};
+  }
+  virtual int _do_message(typename _base::_vtable_message_args &args) const noexcept override
+  {
+    assert(args.code.domain() == *this);
+    const auto &v = static_cast<const SYSTEM_ERROR2_NAMESPACE::status_code<file_io_error_domain> &>(args.code);  // NOLINT
     // Get the paths for this failure, if any, using the mixins from above
     auto paths = v._paths();
     // Get the base message for this failure
-    auto msg = _base::_do_message(code);
-    if(paths.first == nullptr && paths.second == nullptr)
+    int retcode = _base::_do_message(args);
+    if(retcode != 0 || (paths.first == nullptr && paths.second == nullptr))
     {
-      return msg;
+      return retcode;
     }
+    auto msg = static_cast<SYSTEM_ERROR2_NAMESPACE::status_code_domain::string_ref &&>(args.ret);
     std::string ret;
     LLFIO_EXCEPTION_TRY
     {
@@ -247,30 +247,33 @@ protected:
     }
     LLFIO_EXCEPTION_CATCH_ALL
     {
-      return string_ref("Failed to retrieve message for status code");
+      args.ret = string_ref("Failed to retrieve message for status code");
+      return ENOENT;
     }
     char *p = (char *) malloc(ret.size() + 1);
     if(p == nullptr)
     {
-      return string_ref("Failed to allocate memory to store error string");
+      args.ret = string_ref("Failed to allocate memory to store error string");
+      return ENOMEM;
     }
     memcpy(p, ret.c_str(), ret.size() + 1);
-    return atomic_refcounted_string_ref(p, ret.size());
+    args.ret = atomic_refcounted_string_ref(p, ret.size());
+    return 0;
   }
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #endif
-  virtual bool _do_erased_copy(SYSTEM_ERROR2_NAMESPACE::status_code<void> &dst, const SYSTEM_ERROR2_NAMESPACE::status_code<void> &src,
-                               typename _base::payload_info_t dstinfo) const override
+  virtual int _do_erased_copy(SYSTEM_ERROR2_NAMESPACE::status_code<void> &dst, const SYSTEM_ERROR2_NAMESPACE::status_code<void> &src,
+                              typename _base::payload_info_t dstinfo) const noexcept override
   {
     // Note that dst may not have its domain set
-    const auto srcinfo = payload_info();
+    const auto srcinfo = this->payload_info();
     if(dstinfo.total_size >= srcinfo.total_size)
     {
       // Identity
       memcpy(&dst, &src, srcinfo.total_size);
-      return true;
+      return 0;
     }
     if(dstinfo.total_size >= sizeof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *) + sizeof(value_type::sc))
     {
@@ -278,9 +281,9 @@ protected:
       const auto *basedomain = &_base::get();
       memcpy(&dst, &src, sizeof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *) + sizeof(value_type::sc));
       memcpy(&dst, &basedomain, sizeof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *));
-      return true;
+      return 0;
     }
-    return false;
+    return ENOBUFS;
   }
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
