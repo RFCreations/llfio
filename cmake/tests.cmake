@@ -19,6 +19,7 @@ set(llfio_TESTS
   "test/tests/issue0073.cpp"
   "test/tests/issue0102.cpp"
   "test/tests/issue0113.cpp"
+  "test/tests/issue0170.cpp"
   "test/tests/large_pages.cpp"
   "test/tests/map_handle_cache.cpp"
   "test/tests/map_handle_create_close/kernel_map_handle.cpp.hpp"

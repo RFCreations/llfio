@@ -396,6 +396,20 @@ inline file_io_error error_from_exception(std::exception_ptr &&ep = std::current
 
 LLFIO_V2_NAMESPACE_END
 
+SYSTEM_ERROR2_NAMESPACE_BEGIN
+
+// Tell status code that file_io_error can have its additional state implicitly dropped
+inline error make_status_code(LLFIO_V2_NAMESPACE::file_io_error e)
+{
+#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
+  return error(in_place, e);
+#else
+  return error(std::nothrow, e);
+#endif
+}
+
+SYSTEM_ERROR2_NAMESPACE_END
+
 
 #else  // LLFIO_EXPERIMENTAL_STATUS_CODE
 
