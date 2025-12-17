@@ -404,7 +404,12 @@ inline error make_status_code(LLFIO_V2_NAMESPACE::file_io_error e)
 #if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
   return error(in_place, e);
 #else
-  return error(std::nothrow, e);
+  error ret(std::nothrow, e);
+  if(e.empty() != ret.empty())
+  {
+    abort();
+  }
+  return ret;
 #endif
 }
 
