@@ -31,18 +31,22 @@ static inline void TestIssue0170()
   namespace llfio = LLFIO_V2_NAMESPACE;
 #if LLFIO_EXPERIMENTAL_STATUS_CODE
   namespace outcome_e = OUTCOME_V2_NAMESPACE::experimental;
+  llfio::file_io_error e0(llfio::generic_error(llfio::errc::state_not_recoverable));
+  (void) e0.path1();
+
   using type1 = outcome_e::detail::safe_get_make_status_code_result<llfio::file_io_error>::type;
   static_assert(outcome_e::is_status_code<type1>::value, "make_status_code not working!");
 
-  outcome_e::error e1(make_status_code(llfio::file_io_error(llfio::generic_error(llfio::errc::state_not_recoverable))));
+  outcome_e::error e1(make_status_code(e0.clone()));
   (void) e1;
 
-  outcome_e::error e2(llfio::file_io_error(llfio::generic_error(llfio::errc::state_not_recoverable)));
+  outcome_e::error e2(std::move(e0));
   (void) e2;
 
   auto r = []() -> outcome_e::status_result<int>
   {
-    auto c = []() -> llfio::result<int> { return llfio::file_io_error(llfio::generic_error(llfio::errc::state_not_recoverable)); };
+    auto c = []() -> llfio::result<int>
+    { return llfio::file_io_error(llfio::generic_error(llfio::errc::state_not_recoverable)); };
     // This should implicitly drop the extra state in a LLFIO file_io_error
     OUTCOME_TRY(c());
     return llfio::success();
@@ -52,7 +56,8 @@ static inline void TestIssue0170()
   namespace outcome = OUTCOME_V2_NAMESPACE;
   auto r = []() -> outcome::result<int>
   {
-    auto c = []() -> llfio::result<int> { return llfio::error_info(llfio::generic_error(llfio::errc::state_not_recoverable)); };
+    auto c = []() -> llfio::result<int>
+    { return llfio::error_info(llfio::generic_error(llfio::errc::state_not_recoverable)); };
     // This should implicitly drop the extra state in a LLFIO error_info
     OUTCOME_TRY(c());
     return llfio::success();
@@ -62,4 +67,5 @@ static inline void TestIssue0170()
   BOOST_CHECK(true);
 }
 
-KERNELTEST_TEST_KERNEL(regression, llfio, issues, 0170, "Tests issue #0170 file_io_error no longer converts to error", TestIssue0170())
+KERNELTEST_TEST_KERNEL(regression, llfio, issues, 0170, "Tests issue #0170 file_io_error no longer converts to error",
+                       TestIssue0170())

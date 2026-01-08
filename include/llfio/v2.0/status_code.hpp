@@ -57,7 +57,8 @@ as that (a) enables safe header only LLFIO on Windows (b) produces better codege
 #include "outcome/try.hpp"
 // Bring in status code utility
 #include "outcome/experimental/coroutine_support.hpp"
-#if !OUTCOME_USE_SYSTEM_STATUS_CODE && __has_include("outcome/experimental/status-code/include/status-code/system_code_from_exception.hpp")
+#if !OUTCOME_USE_SYSTEM_STATUS_CODE &&                                                                                 \
+__has_include("outcome/experimental/status-code/include/status-code/system_code_from_exception.hpp")
 #ifdef __cpp_exceptions
 #include "outcome/experimental/status-code/include/status-code/system_code_from_exception.hpp"
 #endif
@@ -116,7 +117,8 @@ LLFIO_V2_NAMESPACE_END
 SYSTEM_ERROR2_NAMESPACE_BEGIN
 namespace mixins
 {
-  template <class Base, class BaseStatusCodeDomain> struct mixin<Base, ::LLFIO_V2_NAMESPACE::file_io_error_domain<BaseStatusCodeDomain>> : public Base
+  template <class Base, class T>
+  struct mixin<Base, detail::erased<::LLFIO_V2_NAMESPACE::detail::file_io_error_value_type<T>>> : public Base
   {
     using Base::Base;
 
@@ -202,13 +204,14 @@ protected:
   virtual void _do_payload_info(typename _base::_vtable_payload_info_args &args) const noexcept override
   {
     args.ret = {sizeof(value_type), sizeof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *) + sizeof(value_type),
-                (alignof(value_type) > alignof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *)) ? alignof(value_type) :
-                                                                                                 alignof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *)};
+                (alignof(value_type) > alignof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *)) ?
+                alignof(value_type) :
+                alignof(SYSTEM_ERROR2_NAMESPACE::status_code_domain *)};
   }
   virtual int _do_message(typename _base::_vtable_message_args &args) const noexcept override
   {
     assert(args.code.domain() == *this);
-    const auto &v = static_cast<const SYSTEM_ERROR2_NAMESPACE::status_code<file_io_error_domain> &>(args.code);  // NOLINT
+    const auto &v = static_cast<const SYSTEM_ERROR2_NAMESPACE::erased_status_code<value_type> &>(args.code);  // NOLINT
     // Get the paths for this failure, if any, using the mixins from above
     auto paths = v._paths();
     // Get the base message for this failure
@@ -264,7 +267,8 @@ protected:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #endif
-  virtual int _do_erased_copy(SYSTEM_ERROR2_NAMESPACE::status_code<void> &dst, const SYSTEM_ERROR2_NAMESPACE::status_code<void> &src,
+  virtual int _do_erased_copy(SYSTEM_ERROR2_NAMESPACE::status_code<void> &dst,
+                              const SYSTEM_ERROR2_NAMESPACE::status_code<void> &src,
                               typename _base::payload_info_t dstinfo) const noexcept override
   {
     // Note that dst may not have its domain set
@@ -290,8 +294,10 @@ protected:
 #endif
 };
 #if __cplusplus >= 201402L || defined(_MSC_VER)
-template <class BaseStatusCodeDomain> constexpr file_io_error_domain<BaseStatusCodeDomain> file_io_error_domain_inst = {};
-template <class BaseStatusCodeDomain> inline constexpr const file_io_error_domain<BaseStatusCodeDomain> &file_io_error_domain<BaseStatusCodeDomain>::get()
+template <class BaseStatusCodeDomain>
+constexpr file_io_error_domain<BaseStatusCodeDomain> file_io_error_domain_inst = {};
+template <class BaseStatusCodeDomain>
+inline constexpr const file_io_error_domain<BaseStatusCodeDomain> &file_io_error_domain<BaseStatusCodeDomain>::get()
 {
   return file_io_error_domain_inst<BaseStatusCodeDomain>;
 }
@@ -299,7 +305,8 @@ template <class BaseStatusCodeDomain> inline constexpr const file_io_error_domai
 
 namespace detail
 {
-  using file_io_error_domain_value_system_code = file_io_error_value_type<SYSTEM_ERROR2_NAMESPACE::system_code::value_type>;
+  using file_io_error_domain_value_system_code =
+  file_io_error_value_type<SYSTEM_ERROR2_NAMESPACE::system_code::value_type>;
 }
 #else   // LLFIO_DISABLE_PATHS_IN_FAILURE_INFO
 namespace detail
@@ -309,15 +316,19 @@ namespace detail
 #endif  // LLFIO_DISABLE_PATHS_IN_FAILURE_INFO
 
 //! An erased status code
-using file_io_error = SYSTEM_ERROR2_NAMESPACE::erased_errored_status_code<detail::file_io_error_domain_value_system_code>;
+using file_io_error =
+SYSTEM_ERROR2_NAMESPACE::erased_errored_status_code<detail::file_io_error_domain_value_system_code>;
 
 
 #ifdef __cpp_exceptions
 template <class T> using result = OUTCOME_V2_NAMESPACE::experimental::status_result<T, file_io_error>;
 #else
-template <class T> using result = OUTCOME_V2_NAMESPACE::experimental::status_result<T, file_io_error, OUTCOME_V2_NAMESPACE::policy::terminate>;
+template <class T>
+using result =
+OUTCOME_V2_NAMESPACE::experimental::status_result<T, file_io_error, OUTCOME_V2_NAMESPACE::policy::terminate>;
 // inline std::error_code error_from_exception(std::exception_ptr && = std::current_exception(),
-//                                             std::error_code = std::make_error_code(std::errc::resource_unavailable_try_again)) noexcept
+//                                             std::error_code =
+//                                             std::make_error_code(std::errc::resource_unavailable_try_again)) noexcept
 //{
 //   abort();  // should never be called
 // }
@@ -352,7 +363,8 @@ inline file_io_error posix_error(int c = errno)
 }
 #else
 //! Helper for constructing an error code from a DWORD
-inline file_io_error win32_error(SYSTEM_ERROR2_NAMESPACE::win32::DWORD c = SYSTEM_ERROR2_NAMESPACE::win32::GetLastError())
+inline file_io_error
+win32_error(SYSTEM_ERROR2_NAMESPACE::win32::DWORD c = SYSTEM_ERROR2_NAMESPACE::win32::GetLastError())
 {
   return SYSTEM_ERROR2_NAMESPACE::win32_code(c);
 }
@@ -370,7 +382,8 @@ inline file_io_error generic_error(errc c);  // implemented in handle.hpp
 inline file_io_error posix_error(int c = errno);  // implemented in handle.hpp
 #else
 //! Helper for constructing an error code from a DWORD
-inline file_io_error win32_error(SYSTEM_ERROR2_NAMESPACE::win32::DWORD c = SYSTEM_ERROR2_NAMESPACE::win32::GetLastError());  // implemented in handle.hpp
+inline file_io_error win32_error(
+SYSTEM_ERROR2_NAMESPACE::win32::DWORD c = SYSTEM_ERROR2_NAMESPACE::win32::GetLastError());  // implemented in handle.hpp
 //! Helper for constructing an error code from a NTSTATUS
 inline file_io_error ntkernel_error(SYSTEM_ERROR2_NAMESPACE::win32::NTSTATUS c);  // implemented in handle.hpp
 #endif
@@ -383,12 +396,13 @@ namespace detail
     return s << "llfio::file_io_error(" << v.message().c_str() << ")";
   }
 }  // namespace detail
-inline file_io_error error_from_exception(std::exception_ptr &&ep = std::current_exception(),
-                                          SYSTEM_ERROR2_NAMESPACE::system_code not_matched = errc::resource_unavailable_try_again) noexcept
+inline file_io_error
+error_from_exception(std::exception_ptr &&ep = std::current_exception(),
+                     SYSTEM_ERROR2_NAMESPACE::system_code not_matched = errc::resource_unavailable_try_again) noexcept
 {
 #ifdef __cpp_exceptions
-  return SYSTEM_ERROR2_NAMESPACE::system_code_from_exception(static_cast<std::exception_ptr &&>(ep),
-                                                             static_cast<SYSTEM_ERROR2_NAMESPACE::system_code &&>(not_matched));
+  return SYSTEM_ERROR2_NAMESPACE::system_code_from_exception(
+  static_cast<std::exception_ptr &&>(ep), static_cast<SYSTEM_ERROR2_NAMESPACE::system_code &&>(not_matched));
 #else
   abort();
 #endif
@@ -484,7 +498,8 @@ public:
 
   //! Retrieve the value of the error code
   int value() const noexcept { return ec.value(); }
-  //! Retrieve any first path associated with this failure. Note this only works if called from the same thread as where the failure occurred.
+  //! Retrieve any first path associated with this failure. Note this only works if called from the same thread as where
+  //! the failure occurred.
   inline filesystem::path path1() const
   {
 #if !LLFIO_DISABLE_PATHS_IN_FAILURE_INFO
@@ -500,7 +515,8 @@ public:
 #endif
     return {};
   }
-  //! Retrieve any second path associated with this failure. Note this only works if called from the same thread as where the failure occurred.
+  //! Retrieve any second path associated with this failure. Note this only works if called from the same thread as
+  //! where the failure occurred.
   inline filesystem::path path2() const
   {
 #if !LLFIO_DISABLE_PATHS_IN_FAILURE_INFO
@@ -516,8 +532,8 @@ public:
 #endif
     return {};
   }
-  //! Retrieve a descriptive message for this failure, possibly with paths and stack backtraces. Extra detail only appears if called from the same thread as
-  //! where the failure occurred.
+  //! Retrieve a descriptive message for this failure, possibly with paths and stack backtraces. Extra detail only
+  //! appears if called from the same thread as where the failure occurred.
   inline std::string message() const
   {
     std::string ret(ec.message());
@@ -548,7 +564,8 @@ inline bool operator==(const error_info &a, const ErrorCondEnum &b)
   auto _b = std::error_condition(b);
 #ifndef _WIN32
   // Looks like libstdc++ doesn't map system category to generic category, which is a bug
-  if(_a.category() == std::system_category() && _b.category() == std::generic_category() && _a.value() == static_cast<int>(b))
+  if(_a.category() == std::system_category() && _b.category() == std::generic_category() &&
+     _a.value() == static_cast<int>(b))
     return true;
 #endif
   return _a == _b;
@@ -561,7 +578,8 @@ inline bool operator==(const ErrorCondEnum &a, const error_info &b)
   auto _b = make_error_code(b);
 #ifndef _WIN32
   // Looks like libstdc++ doesn't map system category to generic category, which is a bug
-  if(_a.category() == std::generic_category() && _b.category() == std::system_category() && _b.value() == static_cast<int>(a))
+  if(_a.category() == std::generic_category() && _b.category() == std::system_category() &&
+     _b.value() == static_cast<int>(a))
     return true;
 #endif
   return _a == _b;
@@ -574,7 +592,8 @@ inline bool operator!=(const error_info &a, const ErrorCondEnum &b)
   auto _b = std::error_condition(b);
 #ifndef _WIN32
   // Looks like libstdc++ doesn't map system category to generic category, which is a bug
-  if(_a.category() == std::system_category() && _b.category() == std::generic_category() && _a.value() == static_cast<int>(b))
+  if(_a.category() == std::system_category() && _b.category() == std::generic_category() &&
+     _a.value() == static_cast<int>(b))
     return false;
 #endif
   return _a != _b;
@@ -587,7 +606,8 @@ inline bool operator!=(const ErrorCondEnum &a, const error_info &b)
   auto _b = make_error_code(b);
 #ifndef _WIN32
   // Looks like libstdc++ doesn't map system category to generic category, which is a bug
-  if(_a.category() == std::generic_category() && _b.category() == std::system_category() && _b.value() == static_cast<int>(a))
+  if(_a.category() == std::generic_category() && _b.category() == std::system_category() &&
+     _b.value() == static_cast<int>(a))
     return false;
 #endif
   return _a != _b;
@@ -652,8 +672,9 @@ template <class T> using result = OUTCOME_V2_NAMESPACE::result<T, error_info, OU
 #endif
 using OUTCOME_V2_NAMESPACE::failure;
 using OUTCOME_V2_NAMESPACE::success;
-inline error_info error_from_exception(std::exception_ptr &&ep = std::current_exception(),
-                                       std::error_code not_matched = std::make_error_code(std::errc::resource_unavailable_try_again)) noexcept
+inline error_info error_from_exception(
+std::exception_ptr &&ep = std::current_exception(),
+std::error_code not_matched = std::make_error_code(std::errc::resource_unavailable_try_again)) noexcept
 {
 #ifdef __cpp_exceptions
   return error_info(OUTCOME_V2_NAMESPACE::error_from_exception(std::move(ep), not_matched));
@@ -675,7 +696,8 @@ using OUTCOME_V2_NAMESPACE::awaitables::suspend_always;
 using OUTCOME_V2_NAMESPACE::awaitables::suspend_never;
 #endif
 
-static_assert(OUTCOME_V2_NAMESPACE::trait::is_error_code_available_v<error_info>, "error_info is not detected to be an error code");
+static_assert(OUTCOME_V2_NAMESPACE::trait::is_error_code_available_v<error_info>,
+              "error_info is not detected to be an error code");
 
 //! Choose an errc implementation
 using std::errc;
