@@ -1,5 +1,5 @@
 /* Discovery of various useful filesystem paths
-(C) 2017 Niall Douglas <http://www.nedproductions.biz/> (20 commits)
+(C) 2017 - 2026 Niall Douglas <http://www.nedproductions.biz/> (20 commits)
 File Created: Sept 2017
 
 
@@ -28,14 +28,14 @@ Distributed under the Boost Software License, Version 1.0.
 
 #include "import.hpp"
 
-#include <ShlObj.h>
+#include <shlobj.h>  // for SHGetKnownFolderPath
 
 LLFIO_V2_NAMESPACE_EXPORT_BEGIN
 
 namespace path_discovery
 {
-  std::vector<std::pair<discovered_path::source_type, detail::_store::_discovered_path>> _all_temporary_directories(span<path_view> overrides,
-                                                                                                                    span<path_view> fallbacks)
+  std::vector<std::pair<discovered_path::source_type, detail::_store::_discovered_path>>
+  _all_temporary_directories(span<path_view> overrides, span<path_view> fallbacks)
   {
     std::vector<std::pair<discovered_path::source_type, detail::_store::_discovered_path>> ret;
     filesystem::path::string_type buffer;
@@ -57,7 +57,8 @@ namespace path_discovery
       for(auto &variable : variables)
       {
         buffer.resize(32768);
-        DWORD len = GetEnvironmentVariableW(variable, const_cast<LPWSTR>(buffer.data()), static_cast<DWORD>(buffer.size()));
+        DWORD len =
+        GetEnvironmentVariableW(variable, const_cast<LPWSTR>(buffer.data()), static_cast<DWORD>(buffer.size()));
         if((len != 0u) && len < buffer.size())
         {
           buffer.resize(len);
@@ -151,7 +152,8 @@ namespace path_discovery
     auto r = path_handle::path(L"\\!!\\Device\\NamedPipe\\");
     if(!r)
     {
-      LLFIO_LOG_FATAL(nullptr, "path_discovery::temporary_named_pipes_directory() failed to open \\Device\\NamedPipe\\, something has gone very wrong");
+      LLFIO_LOG_FATAL(nullptr, "path_discovery::temporary_named_pipes_directory() failed to open "
+                               "\\Device\\NamedPipe\\, something has gone very wrong");
     }
     pipesdir = std::move(r).value();
     return pipesdir;

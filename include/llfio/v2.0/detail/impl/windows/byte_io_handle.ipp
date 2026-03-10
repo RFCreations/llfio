@@ -1,5 +1,5 @@
 /* A handle to something
-(C) 2015-2021 Niall Douglas <http://www.nedproductions.biz/> (11 commits)
+(C) 2015-2026 Niall Douglas <http://www.nedproductions.biz/> (11 commits)
 File Created: Dec 2015
 
 
@@ -25,9 +25,6 @@ Distributed under the Boost Software License, Version 1.0.
 #include "../../../byte_io_handle.hpp"
 #include "import.hpp"
 
-#include <WinSock2.h>
-#include <ws2ipdef.h>
-
 LLFIO_V2_NAMESPACE_BEGIN
 
 size_t byte_io_handle::_do_max_buffers() const noexcept
@@ -46,7 +43,8 @@ size_t byte_io_handle::_do_max_buffers() const noexcept
 }
 
 template <class BuffersType>
-inline bool do_cancel(const native_handle_type &nativeh, span<windows_nt_kernel::IO_STATUS_BLOCK> ols, byte_io_handle::io_request<BuffersType> reqs) noexcept
+inline bool do_cancel(const native_handle_type &nativeh, span<windows_nt_kernel::IO_STATUS_BLOCK> ols,
+                      byte_io_handle::io_request<BuffersType> reqs) noexcept
 {
   using namespace windows_nt_kernel;
   using EIOSB = windows_nt_kernel::IO_STATUS_BLOCK;
@@ -75,8 +73,9 @@ inline bool do_cancel(const native_handle_type &nativeh, span<windows_nt_kernel:
 
 // Returns true if operation completed immediately
 template <bool blocking, class Syscall, class BuffersType>
-inline bool do_read_write(byte_io_handle::io_result<BuffersType> &ret, Syscall &&syscall, const native_handle_type &nativeh,
-                          span<windows_nt_kernel::IO_STATUS_BLOCK> ols, byte_io_handle::io_request<BuffersType> reqs, deadline d) noexcept
+inline bool do_read_write(byte_io_handle::io_result<BuffersType> &ret, Syscall &&syscall,
+                          const native_handle_type &nativeh, span<windows_nt_kernel::IO_STATUS_BLOCK> ols,
+                          byte_io_handle::io_request<BuffersType> reqs, deadline d) noexcept
 {
   using namespace windows_nt_kernel;
   using EIOSB = windows_nt_kernel::IO_STATUS_BLOCK;
@@ -130,7 +129,8 @@ inline bool do_read_write(byte_io_handle::io_result<BuffersType> &ret, Syscall &
 #endif
     reqs.offset += req.size();
     ol.Status = 0x103 /*STATUS_PENDING*/;
-    NTSTATUS ntstat = syscall(nativeh.h, nullptr, nullptr, nullptr, &ol, (PVOID) req.data(), static_cast<DWORD>(req.size()), &offset, nullptr);
+    NTSTATUS ntstat = syscall(nativeh.h, nullptr, nullptr, nullptr, &ol, (PVOID) req.data(),
+                              static_cast<DWORD>(req.size()), &offset, nullptr);
     if(ntstat < 0 && ntstat != 0x103 /*STATUS_PENDING*/)
     {
       InterlockedCompareExchange(&ol.Status, ntstat, 0x103 /*STATUS_PENDING*/);
@@ -191,8 +191,8 @@ inline bool do_read_write(byte_io_handle::io_result<BuffersType> &ret, Syscall &
   return true;
 }
 
-byte_io_handle::io_result<byte_io_handle::buffers_type> byte_io_handle::_do_read(byte_io_handle::io_request<byte_io_handle::buffers_type> reqs,
-                                                                                 deadline d) noexcept
+byte_io_handle::io_result<byte_io_handle::buffers_type>
+byte_io_handle::_do_read(byte_io_handle::io_request<byte_io_handle::buffers_type> reqs, deadline d) noexcept
 {
   windows_nt_kernel::init();
   using namespace windows_nt_kernel;
@@ -216,8 +216,8 @@ byte_io_handle::io_result<byte_io_handle::buffers_type> byte_io_handle::_do_read
   return ret;
 }
 
-byte_io_handle::io_result<byte_io_handle::const_buffers_type> byte_io_handle::_do_write(byte_io_handle::io_request<byte_io_handle::const_buffers_type> reqs,
-                                                                                        deadline d) noexcept
+byte_io_handle::io_result<byte_io_handle::const_buffers_type>
+byte_io_handle::_do_write(byte_io_handle::io_request<byte_io_handle::const_buffers_type> reqs, deadline d) noexcept
 {
   windows_nt_kernel::init();
   using namespace windows_nt_kernel;
@@ -241,8 +241,9 @@ byte_io_handle::io_result<byte_io_handle::const_buffers_type> byte_io_handle::_d
   return ret;
 }
 
-byte_io_handle::io_result<byte_io_handle::const_buffers_type> byte_io_handle::_do_barrier(byte_io_handle::io_request<byte_io_handle::const_buffers_type> reqs,
-                                                                                          barrier_kind kind, deadline d) noexcept
+byte_io_handle::io_result<byte_io_handle::const_buffers_type>
+byte_io_handle::_do_barrier(byte_io_handle::io_request<byte_io_handle::const_buffers_type> reqs, barrier_kind kind,
+                            deadline d) noexcept
 {
   windows_nt_kernel::init();
   using namespace windows_nt_kernel;

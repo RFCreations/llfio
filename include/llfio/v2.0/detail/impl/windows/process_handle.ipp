@@ -46,7 +46,8 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle::path_type> process_handle
     return success();
   }
   path_type::string_type buffer(32768, 0);
-  DWORD len = GetModuleFileNameW(nullptr, const_cast<path_type::string_type::value_type *>(buffer.data()), (DWORD) buffer.size());
+  DWORD len =
+  GetModuleFileNameW(nullptr, const_cast<path_type::string_type::value_type *>(buffer.data()), (DWORD) buffer.size());
   if(!len)
   {
     return win32_error();
@@ -79,7 +80,8 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle> process_handle::clone() c
   return process_handle(std::move(duph));
 }
 
-LLFIO_HEADERS_ONLY_MEMFUNC_SPEC std::unique_ptr<span<path_view_component>, process_handle::_byte_array_deleter> process_handle::environment() const noexcept
+LLFIO_HEADERS_ONLY_MEMFUNC_SPEC std::unique_ptr<span<path_view_component>, process_handle::_byte_array_deleter>
+process_handle::environment() const noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   if(_v.h != GetCurrentProcess())
@@ -103,7 +105,8 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC std::unique_ptr<span<path_view_component>, proce
     if(*s != '=')
       ++count;
   }
-  const size_t bytesneeded = sizeof(span<path_view_component>) + sizeof(path_view_component) * count + (e - strings + 1) * sizeof(wchar_t);
+  const size_t bytesneeded =
+  sizeof(span<path_view_component>) + sizeof(path_view_component) * count + (e - strings + 1) * sizeof(wchar_t);
   auto ret = std::make_unique<byte[]>(bytesneeded);
   auto &out = *(span<path_view_component> *) ret.get();
   auto *array = (path_view_component *) (ret.get() + sizeof(span<path_view_component>)), *arraye = array;
@@ -122,7 +125,8 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC std::unique_ptr<span<path_view_component>, proce
       out = {array, arraye};
     }
   }
-  return std::unique_ptr<span<path_view_component>, process_handle::_byte_array_deleter>((span<path_view_component> *) ret.release());
+  return std::unique_ptr<span<path_view_component>, process_handle::_byte_array_deleter>(
+  (span<path_view_component> *) ret.release());
 }
 
 LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<intptr_t> process_handle::wait(deadline d) const noexcept
@@ -153,36 +157,43 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC const process_handle &process_handle::current() 
 {
   static process_handle self = []() -> process_handle
   {
-    process_handle ret(native_handle_type(native_handle_type::disposition::process, GetCurrentProcess()), flag::release_pipes_on_close);
-    ret._in_pipe = pipe_handle(native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::readable |
-                                                  native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
-                                                  native_handle_type::disposition::cache_metadata,
-                                                  GetStdHandle(STD_INPUT_HANDLE)),
-                               pipe_handle::flag::none);
-    ret._out_pipe = pipe_handle(native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::writable |
-                                                   native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
-                                                   native_handle_type::disposition::cache_metadata,
-                                                   GetStdHandle(STD_OUTPUT_HANDLE)),
-                                pipe_handle::flag::none);
-    ret._error_pipe = pipe_handle(native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::writable |
-                                                     native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
-                                                     native_handle_type::disposition::cache_metadata,
-                                                     GetStdHandle(STD_ERROR_HANDLE)),
-                                  pipe_handle::flag::none);
+    process_handle ret(native_handle_type(native_handle_type::disposition::process, GetCurrentProcess()),
+                       flag::release_pipes_on_close);
+    ret._in_pipe = pipe_handle(
+    native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::readable |
+                       native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
+                       native_handle_type::disposition::cache_metadata,
+                       GetStdHandle(STD_INPUT_HANDLE)),
+    pipe_handle::flag::none);
+    ret._out_pipe = pipe_handle(
+    native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::writable |
+                       native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
+                       native_handle_type::disposition::cache_metadata,
+                       GetStdHandle(STD_OUTPUT_HANDLE)),
+    pipe_handle::flag::none);
+    ret._error_pipe = pipe_handle(
+    native_handle_type(native_handle_type::disposition::pipe | native_handle_type::disposition::writable |
+                       native_handle_type::disposition::cache_reads | native_handle_type::disposition::cache_writes |
+                       native_handle_type::disposition::cache_metadata,
+                       GetStdHandle(STD_ERROR_HANDLE)),
+    pipe_handle::flag::none);
     return ret;
   }();
   return self;
 }
 
-LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle> process_handle::launch_process(path_view path, span<path_view_component> args,
-                                                                                      span<path_view_component> env, flag flags) noexcept
+LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle> process_handle::launch_process(path_view path,
+                                                                                      span<path_view_component> args,
+                                                                                      span<path_view_component> env,
+                                                                                      flag flags) noexcept
 {
   result<process_handle> ret(in_place_type<process_handle>, native_handle_type(), flags);
   native_handle_type &nativeh = ret.value()._v;
   LLFIO_LOG_FUNCTION_CALL(&ret);
   nativeh.behaviour |= native_handle_type::disposition::process | native_handle_type::disposition::kernel_handle;
   pipe_handle childinpipe, childoutpipe, childerrorpipe;
-  pipe_handle::flag pipeflags = !(flags & flag::no_multiplexable_pipes) ? pipe_handle::flag::multiplexable : pipe_handle::flag::none;
+  pipe_handle::flag pipeflags =
+  !(flags & flag::no_multiplexable_pipes) ? pipe_handle::flag::multiplexable : pipe_handle::flag::none;
 
   if(!(flags & flag::no_redirect_in_pipe))
   {
@@ -233,7 +244,7 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle> process_handle::launch_pr
                         {
                           return errc::value_too_large;
                         }
-                        *argsbuffere++ = c;
+                        *argsbuffere++ = (wchar_t) c;
                       }
                       return success();
                     }));
@@ -254,7 +265,7 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle> process_handle::launch_pr
                           {
                             return errc::value_too_large;
                           }
-                          *argsbuffere++ = c;
+                          *argsbuffere++ = (wchar_t) c;
                         }
                         if((size_t) (argsbuffere - argsbuffer) >= sizeof(argsbuffer))
                         {
@@ -277,20 +288,21 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<process_handle> process_handle::launch_pr
                           {
                             return errc::value_too_large;
                           }
-                          *envbuffere++ = c;
+                          *envbuffere++ = (wchar_t) c;
                         }
                         if((size_t) (envbuffere - envbuffer) >= sizeof(argsbuffer))
                         {
                           return errc::value_too_large;
                         }
-                        *envbuffere++ = 0;
+                        *envbuffere++ = (wchar_t) 0;
                         return success();
                       }));
   }
   *envbuffere = 0;
   path_view::zero_terminated_rendered_path<> zpath(path);
   PROCESS_INFORMATION pi;
-  if(!CreateProcessW(zpath.data(), argsbuffer, nullptr, nullptr, true, CREATE_UNICODE_ENVIRONMENT, envbuffer, nullptr, &si, &pi))
+  if(!CreateProcessW(zpath.data(), argsbuffer, nullptr, nullptr, true, CREATE_UNICODE_ENVIRONMENT, envbuffer, nullptr,
+                     &si, &pi))
     return win32_error();
   nativeh.h = pi.hProcess;
   (void) CloseHandle(pi.hThread);

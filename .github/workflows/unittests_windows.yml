@@ -26,33 +26,33 @@ jobs:
       id: vars
       shell: bash
       run: |
-       if [ "${{ matrix.image }}" = "windows-2025" ]; then
-         NAME=VS2025;
-         GENERATOR="Visual Studio 18 2025";
-       else
-         NAME=VS2022;
-         GENERATOR="Visual Studio 17 2022";
-       fi
-       echo ::set-output name=NAME::${NAME}
-       echo ::set-output name=GENERATOR::${GENERATOR}
+        if [ "${{ matrix.image }}" = "windows-2025" ]; then
+          NAME=VS2025;
+          GENERATOR="Visual Studio 18 2025";
+        else
+          NAME=VS2022;
+          GENERATOR="Visual Studio 17 2022";
+        fi
+        echo ::set-output name=NAME::${NAME}
+        echo ::set-output name=GENERATOR::${GENERATOR}
 
-          
+           
     - name: CMake tests Windows
       shell: bash
       env:
         NAME: ${{ steps.vars.outputs.NAME }}-${{ matrix.configuration }}
       run: |
-       if [ "${{ matrix.configuration }}" = "status_code" ]; then
-         export CMAKE_CONFIGURE_OPTIONS="-DLLFIO_USE_EXPERIMENTAL_SG14_STATUS_CODE=ON"
-       fi
-       ctest -S .ci.cmake -VV --timeout 900 "-DCTEST_CONFIGURE_OPTIONS=$CMAKE_CONFIGURE_OPTIONS" -DCTEST_SITE=$NAME -DCTEST_CMAKE_GENERATOR="${{ steps.vars.outputs.GENERATOR }}"
-      
+        if [ "${{ matrix.configuration }}" = "status_code" ]; then
+          export CMAKE_CONFIGURE_OPTIONS="-DLLFIO_USE_EXPERIMENTAL_SG14_STATUS_CODE=ON"
+        fi
+        ctest -S .ci.cmake -VV --timeout 900 "-DCTEST_CONFIGURE_OPTIONS=$CMAKE_CONFIGURE_OPTIONS" -DCTEST_SITE=$NAME -DCTEST_CMAKE_GENERATOR="${{ steps.vars.outputs.GENERATOR }}"
+       
     - name: Upload Prebuilt Binaries
       uses: actions/upload-artifact@v4
       with:
         name: Windows ${{ steps.vars.outputs.NAME }} ${{ matrix.configuration }} prebuilt binaries
         path: llfio-v2.0-binaries-win64.zip
-      
+     
     - name: Upload Test Results
       if: always()
       uses: actions/upload-artifact@v4
@@ -60,9 +60,43 @@ jobs:
         name: Windows ${{ steps.vars.outputs.NAME }} ${{ matrix.configuration }} test results
         path: prebuilt/merged_junit_results.xml
 
+  WinMinGW:
+    name: MinGW-MSYS2
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [error_code, status_code]
+    runs-on: windows-latest
+
+    steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
+
+    - uses: actions/checkout@v4
+
+    - name: CMake tests Windows
+      shell: msys2 {0}
+      env:
+        NAME: MinGW-${{ matrix.configuration }}
+      run: |
+        if [ "${{ matrix.configuration }}" = "status_code" ]; then
+          export CMAKE_CONFIGURE_OPTIONS="-DLLFIO_USE_EXPERIMENTAL_SG14_STATUS_CODE=ON"
+        fi
+        ctest -S .ci.cmake -VV --timeout 900 "-DCTEST_CONFIGURE_OPTIONS=$CMAKE_CONFIGURE_OPTIONS" -DCTEST_SITE=$NAME -DCTEST_CMAKE_GENERATOR=Ninja
+       
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Windows MinGW ${{ matrix.configuration }} test results
+        path: prebuilt/merged_junit_results.xml
+
   publish-test-results:
     name: "Publish Unit Tests Results"
-    needs: [WinVS2022]
+    needs: [WinVS2022, WinMinGW]
     runs-on: ubuntu-latest
     if: success() || failure()
 

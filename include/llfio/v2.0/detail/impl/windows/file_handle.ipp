@@ -32,7 +32,8 @@ Distributed under the Boost Software License, Version 1.0.
 
 LLFIO_V2_NAMESPACE_BEGIN
 
-result<file_handle> file_handle::file(const path_handle &base, file_handle::path_view_type path, file_handle::mode _mode, file_handle::creation _creation,
+result<file_handle> file_handle::file(const path_handle &base, file_handle::path_view_type path,
+                                      file_handle::mode _mode, file_handle::creation _creation,
                                       file_handle::caching _caching, file_handle::flag flags) noexcept
 {
   windows_nt_kernel::init();
@@ -75,7 +76,8 @@ result<file_handle> file_handle::file(const path_handle &base, file_handle::path
     UNICODE_STRING _path{};
     _path.Buffer = const_cast<wchar_t *>(zpath.data());
     _path.MaximumLength = (_path.Length = static_cast<USHORT>(zpath.size() * sizeof(wchar_t))) + sizeof(wchar_t);
-    if(zpath.size() >= 4 && _path.Buffer[0] == '\\' && _path.Buffer[1] == '!' && _path.Buffer[2] == '!' && _path.Buffer[3] == '\\')
+    if(zpath.size() >= 4 && _path.Buffer[0] == '\\' && _path.Buffer[1] == '!' && _path.Buffer[2] == '!' &&
+       _path.Buffer[3] == '\\')
     {
       _path.Buffer += 3;
       _path.Length -= 3 * sizeof(wchar_t);
@@ -93,7 +95,8 @@ result<file_handle> file_handle::file(const path_handle &base, file_handle::path
 
     LARGE_INTEGER AllocationSize{};
     memset(&AllocationSize, 0, sizeof(AllocationSize));
-    NTSTATUS ntstat = NtCreateFile(&nativeh.h, access, &oa, &isb, &AllocationSize, attribs, fileshare, creatdisp, ntflags, nullptr, 0);
+    NTSTATUS ntstat =
+    NtCreateFile(&nativeh.h, access, &oa, &isb, &AllocationSize, attribs, fileshare, creatdisp, ntflags, nullptr, 0);
     if(STATUS_PENDING == ntstat)
     {
       ntstat = ntwait(nativeh.h, isb, deadline());
@@ -140,7 +143,8 @@ result<file_handle> file_handle::file(const path_handle &base, file_handle::path
       break;
     }
     path_view::zero_terminated_rendered_path<> zpath(path);
-    if(INVALID_HANDLE_VALUE == (nativeh.h = CreateFileW_(zpath.data(), access, fileshare, nullptr, creation, attribs, nullptr)))  // NOLINT
+    if(INVALID_HANDLE_VALUE ==
+       (nativeh.h = CreateFileW_(zpath.data(), access, fileshare, nullptr, creation, attribs, nullptr)))  // NOLINT
     {
       DWORD errcode = GetLastError();
       // assert(false);
@@ -234,7 +238,8 @@ result<file_handle> file_handle::temp_inode(const path_handle &dirh, mode _mode,
     _path.Buffer = const_cast<wchar_t *>(random.c_str());
     {
       IO_STATUS_BLOCK isb = make_iostatus();
-      NTSTATUS ntstat = NtCreateFile(&nativeh.h, access, &oa, &isb, &AllocationSize, attribs, fileshare, creatdisp, ntflags, nullptr, 0);
+      NTSTATUS ntstat =
+      NtCreateFile(&nativeh.h, access, &oa, &isb, &AllocationSize, attribs, fileshare, creatdisp, ntflags, nullptr, 0);
       if(STATUS_PENDING == ntstat)
       {
         ntstat = ntwait(nativeh.h, isb, deadline());
@@ -271,7 +276,8 @@ result<file_handle> file_handle::temp_inode(const path_handle &dirh, mode _mode,
         oa.RootDirectory = nativeh.h;
         IO_STATUS_BLOCK isb = make_iostatus();
         NTSTATUS ntstat =
-        NtOpenFile(&duph, SYNCHRONIZE | DELETE, &oa, &isb, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0x20 /*FILE_SYNCHRONOUS_IO_NONALERT*/);
+        NtOpenFile(&duph, SYNCHRONIZE | DELETE, &oa, &isb, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                   0x20 /*FILE_SYNCHRONOUS_IO_NONALERT*/);
         if(ntstat < 0)
         {
           return ntkernel_error(ntstat);
@@ -379,7 +385,8 @@ result<std::vector<file_handle::extent_pair>> file_handle::extents() const noexc
     FILE_ALLOCATED_RANGE_BUFFER farb{};
     farb.FileOffset.QuadPart = 0;
     farb.Length.QuadPart =
-    (static_cast<extent_type>(1) << 63) - 1;  // Microsoft claims this is 1<<64-1024 for NTFS, but I get bad parameter error with anything higher than 1<<63-1.
+    (static_cast<extent_type>(1) << 63) - 1;  // Microsoft claims this is 1<<64-1024 for NTFS, but I get bad parameter
+                                              // error with anything higher than 1<<63-1.
     DWORD bytesout = 0;
     OVERLAPPED ol{};
     memset(&ol, 0, sizeof(ol));
@@ -404,10 +411,13 @@ result<std::vector<file_handle::extent_pair>> file_handle::extents() const noexc
   {
     return error_from_exception();
   }
+  abort();
 }
 
-result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::extent_pair extent, byte_io_handle &dest_, byte_io_handle::extent_type destoffset,
-                                                               deadline d, bool force_copy_now, bool emulate_if_unsupported) noexcept
+result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::extent_pair extent, byte_io_handle &dest_,
+                                                               byte_io_handle::extent_type destoffset, deadline d,
+                                                               bool force_copy_now,
+                                                               bool emulate_if_unsupported) noexcept
 {
   LLFIO_EXCEPTION_TRY
   {
@@ -507,7 +517,8 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
       OVERLAPPED ol{};
       memset(&ol, 0, sizeof(ol));
       ol.Internal = static_cast<ULONG_PTR>(-1);
-      if(DeviceIoControl(_v.h, FSCTL_QUERY_ALLOCATED_RANGES, &farb_query, sizeof(farb_query), &farb_allocated, sizeof(farb_allocated), &bytesout, &ol) == 0)
+      if(DeviceIoControl(_v.h, FSCTL_QUERY_ALLOCATED_RANGES, &farb_query, sizeof(farb_query), &farb_allocated,
+                         sizeof(farb_allocated), &bytesout, &ol) == 0)
       {
         if(ERROR_MORE_DATA != GetLastError())
         {
@@ -526,10 +537,13 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
           if(endoflastregion != (extent_type) farb_allocated[n].FileOffset.QuadPart)
           {
             // Insert a delete region
-            todo.push_back(workitem{extent_pair(endoflastregion, farb_allocated[n].FileOffset.QuadPart - endoflastregion), workitem::delete_extents});
+            todo.push_back(
+            workitem{extent_pair(endoflastregion, farb_allocated[n].FileOffset.QuadPart - endoflastregion),
+                     workitem::delete_extents});
           }
         }
-        todo.push_back(workitem{extent_pair(farb_allocated[n].FileOffset.QuadPart, farb_allocated[n].Length.QuadPart), workitem::clone_extents});
+        todo.push_back(workitem{extent_pair(farb_allocated[n].FileOffset.QuadPart, farb_allocated[n].Length.QuadPart),
+                                workitem::clone_extents});
         offset = farb_allocated[n].FileOffset.QuadPart + farb_allocated[n].Length.QuadPart;
       }
     }
@@ -545,12 +559,14 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
         {
           assert(todo.front().src.offset > extent.offset);
           todo.insert(todo.begin(), workitem{{extent.offset, todo.front().src.offset - extent.offset},
-                                             (todo.front().op == workitem::clone_extents) ? workitem::copy_bytes : workitem::zero_bytes});
+                                             (todo.front().op == workitem::clone_extents) ? workitem::copy_bytes :
+                                                                                            workitem::zero_bytes});
         }
       }
       else if(todo.front().src.offset > extent.offset)
       {
-        todo.insert(todo.begin(), workitem{{extent.offset, todo.front().src.offset - extent.offset}, workitem::delete_extents});
+        todo.insert(todo.begin(),
+                    workitem{{extent.offset, todo.front().src.offset - extent.offset}, workitem::delete_extents});
       }
       if(todo.back().src.offset + todo.back().src.length > extent.offset + extent.length)
       {
@@ -561,14 +577,16 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
         if(todoend != extentend)
         {
           assert(todoend < extentend);
-          todo.push_back(workitem{{todoend, extentend - todoend}, (todo.back().op == workitem::clone_extents) ? workitem::copy_bytes : workitem::zero_bytes});
+          todo.push_back(
+          workitem{{todoend, extentend - todoend},
+                   (todo.back().op == workitem::clone_extents) ? workitem::copy_bytes : workitem::zero_bytes});
         }
       }
       else if(todo.back().src.offset + todo.back().src.length < extent.offset + extent.length)
       {
-        todo.push_back(
-        workitem{{todo.back().src.offset + todo.back().src.length, extent.offset + extent.length - (todo.back().src.offset + todo.back().src.length)},
-                 workitem::delete_extents});
+        todo.push_back(workitem{{todo.back().src.offset + todo.back().src.length,
+                                 extent.offset + extent.length - (todo.back().src.offset + todo.back().src.length)},
+                                workitem::delete_extents});
       }
     }
     // Handle there being insufficient source to fill dest
@@ -691,8 +709,10 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
           OVERLAPPED ol{};
           memset(&ol, 0, sizeof(ol));
           ol.Internal = static_cast<ULONG_PTR>(-1);
-          if(DeviceIoControl(dest.native_handle().h, CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 209, METHOD_BUFFERED, FILE_WRITE_DATA) /*FSCTL_DUPLICATE_EXTENTS*/, &ded,
-                             sizeof(ded), nullptr, 0, &bytesout, &ol) == 0)
+          if(DeviceIoControl(
+             dest.native_handle().h,
+             CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 209, METHOD_BUFFERED, FILE_WRITE_DATA) /*FSCTL_DUPLICATE_EXTENTS*/, &ded,
+             sizeof(ded), nullptr, 0, &bytesout, &ol) == 0)
           {
             DWORD errcode = GetLastError();
             if(ERROR_IO_PENDING == errcode)
@@ -721,7 +741,8 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
             buffer = utils::page_allocator<byte>().allocate(blocksize);
           }
           deadline nd;
-          buffer_type b(buffer, utils::round_up_to_page_size((size_t) thisblock, 4096) /* to allow aligned i/o files */);
+          buffer_type b(buffer,
+                        utils::round_up_to_page_size((size_t) thisblock, 4096) /* to allow aligned i/o files */);
           LLFIO_DEADLINE_TO_PARTIAL_DEADLINE(nd, d);
           OUTCOME_TRY(auto &&readed, read({{&b, 1}, item.src.offset + thisoffset}, nd));
           buffer_dirty = true;
@@ -736,7 +757,8 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
           {
             // If we don't need to reset the bytes in the destination, try to elide
             // regions of zero bytes before writing to save on extents newly allocated
-            const char *ds = (const char *) readed.front().data(), *e = (const char *) readed.front().data() + readed.front().size(), *zs, *ze;
+            const char *ds = (const char *) readed.front().data(),
+                       *e = (const char *) readed.front().data() + readed.front().size(), *zs, *ze;
             while(ds < e)
             {
               // Take zs to end of non-zero data
@@ -758,8 +780,10 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
                 // Write portion from ds to zs
                 cb = {(const byte *) ds, (size_t) (zs - ds)};
                 auto localoffset = cb.data() - readed.front().data();
-                // std::cout << "*** " << (item.src.offset + thisoffset + localoffset) << " - " << cb.size() << std::endl;
-                OUTCOME_TRY(auto &&written, dest.write({{&cb, 1}, item.src.offset + thisoffset + localoffset + destoffsetdiff}, nd));
+                // std::cout << "*** " << (item.src.offset + thisoffset + localoffset) << " - " << cb.size() <<
+                // std::endl;
+                OUTCOME_TRY(auto &&written,
+                            dest.write({{&cb, 1}, item.src.offset + thisoffset + localoffset + destoffsetdiff}, nd));
                 if(written.front().size() != (size_t) (zs - ds))
                 {
                   return errc::resource_unavailable_try_again;  // something is wrong
@@ -788,7 +812,8 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
           OVERLAPPED ol{};
           memset(&ol, 0, sizeof(ol));
           ol.Internal = static_cast<ULONG_PTR>(-1);
-          if(DeviceIoControl(dest.native_handle().h, FSCTL_SET_ZERO_DATA, &fzdi, sizeof(fzdi), nullptr, 0, &bytesout, &ol) == 0)
+          if(DeviceIoControl(dest.native_handle().h, FSCTL_SET_ZERO_DATA, &fzdi, sizeof(fzdi), nullptr, 0, &bytesout,
+                             &ol) == 0)
           {
             if(ERROR_IO_PENDING == GetLastError())
             {
@@ -809,7 +834,8 @@ result<file_handle::extent_pair> file_handle::clone_extents_to(file_handle::exte
             done = true;
           }
         }
-        if(!done && !item.destination_extents_are_new && (item.op == workitem::zero_bytes || (!zero_extents && item.op == workitem::delete_extents)))
+        if(!done && !item.destination_extents_are_new &&
+           (item.op == workitem::zero_bytes || (!zero_extents && item.op == workitem::delete_extents)))
         {
           if(buffer == nullptr)
           {
@@ -882,19 +908,22 @@ result<file_handle::extent_type> file_handle::zero(file_handle::extent_pair exte
 
 /******************************************* statfs_t ************************************************/
 
-LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<std::pair<uint32_t, float>> statfs_t::_fill_ios(const handle & /*unused*/, const std::string &mntfromname) noexcept
+LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<std::pair<uint32_t, float>>
+statfs_t::_fill_ios(const handle & /*unused*/, const std::string &mntfromname) noexcept
 {
   LLFIO_EXCEPTION_TRY
   {
     alignas(8) wchar_t buffer[32769];
     // Firstly open a handle to the volume
-    OUTCOME_TRY(auto &&volumeh, file_handle::file({}, mntfromname, handle::mode::none, handle::creation::open_existing, handle::caching::only_metadata));
+    OUTCOME_TRY(auto &&volumeh, file_handle::file({}, mntfromname, handle::mode::none, handle::creation::open_existing,
+                                                  handle::caching::only_metadata));
     // Now ask the volume what physical disks it spans
     auto *vde = reinterpret_cast<VOLUME_DISK_EXTENTS *>(buffer);
     OVERLAPPED ol{};
     memset(&ol, 0, sizeof(ol));
     ol.Internal = static_cast<ULONG_PTR>(-1);
-    if(DeviceIoControl(volumeh.native_handle().h, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, nullptr, 0, vde, sizeof(buffer), nullptr, &ol) == 0)
+    if(DeviceIoControl(volumeh.native_handle().h, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, nullptr, 0, vde, sizeof(buffer),
+                       nullptr, &ol) == 0)
     {
       if(ERROR_IO_PENDING == GetLastError())
       {
@@ -936,11 +965,13 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC result<std::pair<uint32_t, float>> statfs_t::_fi
       }
       *e++ = '0' + (DiskNumber % 10);
       *e = 0;
-      OUTCOME_TRY(auto &&diskh, file_handle::file({}, path_view(physicaldrivename, e - physicaldrivename, path_view::zero_terminated), handle::mode::none,
-                                                  handle::creation::open_existing, handle::caching::only_metadata));
+      OUTCOME_TRY(auto &&diskh, file_handle::file(
+                                {}, path_view(physicaldrivename, e - physicaldrivename, path_view::zero_terminated),
+                                handle::mode::none, handle::creation::open_existing, handle::caching::only_metadata));
       ol.Internal = static_cast<ULONG_PTR>(-1);
       auto *dp = reinterpret_cast<DISK_PERFORMANCE *>(buffer);
-      if(DeviceIoControl(diskh.native_handle().h, IOCTL_DISK_PERFORMANCE, nullptr, 0, dp, sizeof(buffer), nullptr, &ol) == 0)
+      if(DeviceIoControl(diskh.native_handle().h, IOCTL_DISK_PERFORMANCE, nullptr, 0, dp, sizeof(buffer), nullptr,
+                         &ol) == 0)
       {
         if(ERROR_IO_PENDING == GetLastError())
         {

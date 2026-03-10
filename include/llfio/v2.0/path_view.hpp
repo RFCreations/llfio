@@ -61,7 +61,8 @@ clang defines __cpp_char8_t if there is a char8_t.
 MSVC seems to only implement char8_t if C++ 20 is enabled.
 */
 #ifndef LLFIO_PATH_VIEW_CHAR8_TYPE_EMULATED
-#if(defined(_MSC_VER) && !defined(__clang__) && (!_HAS_CXX20 || _MSC_VER < 1921)) || (defined(__GNUC__) && !defined(__clang__) && !defined(__CHAR8_TYPE__)) || \
+#if(defined(_MSC_VER) && !defined(__clang__) && (!_HAS_CXX20 || _MSC_VER < 1921)) ||                                   \
+(defined(__GNUC__) && !defined(__clang__) && !defined(__CHAR8_TYPE__)) ||                                              \
 (defined(__clang__) && !defined(__cpp_char8_t))
 #define LLFIO_PATH_VIEW_CHAR8_TYPE_EMULATED 1
 #else
@@ -91,7 +92,8 @@ namespace detail
   }
 
 #if LLFIO_PATH_VIEW_CHAR8_TYPE_EMULATED
-#ifdef _MSC_VER  // MSVC's standard library refuses any basic_string_view<T> where T is not an unsigned type
+#if defined(_MSC_VER) ||                                                                                               \
+defined(__MINGW32__)  // MSVC's standard library refuses any basic_string_view<T> where T is not an unsigned type
   using char8_t = unsigned char;
 #else
 #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 12
@@ -182,25 +184,36 @@ namespace detail
   };
 
   LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length,
-                                                      const LLFIO_V2_NAMESPACE::byte *src_buffer, size_t src_buffer_length, const std::locale *loc);
-  LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length, const char *src_buffer,
+                                                      const LLFIO_V2_NAMESPACE::byte *src_buffer,
                                                       size_t src_buffer_length, const std::locale *loc);
-  LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length, const wchar_t *src_buffer,
-                                                      size_t src_buffer_length, const std::locale *loc);
-  LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length, const char8_t *src_buffer,
-                                                      size_t src_buffer_length, const std::locale *loc);
-  LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length, const char16_t *src_buffer,
-                                                      size_t src_buffer_length, const std::locale *loc);
+  LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length,
+                                                      const char *src_buffer, size_t src_buffer_length,
+                                                      const std::locale *loc);
+  LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length,
+                                                      const wchar_t *src_buffer, size_t src_buffer_length,
+                                                      const std::locale *loc);
+  LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length,
+                                                      const char8_t *src_buffer, size_t src_buffer_length,
+                                                      const std::locale *loc);
+  LLFIO_HEADERS_ONLY_FUNC_SPEC char *reencode_path_to(size_t &toallocate, char *dest_buffer, size_t dest_buffer_length,
+                                                      const char16_t *src_buffer, size_t src_buffer_length,
+                                                      const std::locale *loc);
 
-  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer, size_t dest_buffer_length,
-                                                         const LLFIO_V2_NAMESPACE::byte *src_buffer, size_t src_buffer_length, const std::locale *loc);
-  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer, size_t dest_buffer_length, const char *src_buffer,
+  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer,
+                                                         size_t dest_buffer_length,
+                                                         const LLFIO_V2_NAMESPACE::byte *src_buffer,
                                                          size_t src_buffer_length, const std::locale *loc);
-  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer, size_t dest_buffer_length, const wchar_t *src_buffer,
+  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer,
+                                                         size_t dest_buffer_length, const char *src_buffer,
                                                          size_t src_buffer_length, const std::locale *loc);
-  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer, size_t dest_buffer_length, const char8_t *src_buffer,
+  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer,
+                                                         size_t dest_buffer_length, const wchar_t *src_buffer,
                                                          size_t src_buffer_length, const std::locale *loc);
-  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer, size_t dest_buffer_length, const char16_t *src_buffer,
+  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer,
+                                                         size_t dest_buffer_length, const char8_t *src_buffer,
+                                                         size_t src_buffer_length, const std::locale *loc);
+  LLFIO_HEADERS_ONLY_FUNC_SPEC wchar_t *reencode_path_to(size_t &toallocate, wchar_t *dest_buffer,
+                                                         size_t dest_buffer_length, const char16_t *src_buffer,
                                                          size_t src_buffer_length, const std::locale *loc);
   class path_view_iterator;
 
@@ -211,14 +224,16 @@ namespace detail
   }
   template <class T> constexpr inline void is_deleter(...) {}
   LLFIO_TEMPLATE(class U)
-  LLFIO_TREQUIRES(LLFIO_TEXPR(std::declval<U>().deallocate((typename U::value_type *) nullptr, (size_t) 0))) constexpr inline U is_allocator(U &&v)
+  LLFIO_TREQUIRES(LLFIO_TEXPR(std::declval<U>().deallocate((typename U::value_type *) nullptr, (size_t) 0)))
+  constexpr inline U is_allocator(U &&v)
   {
     return v;
   }
   constexpr inline void is_allocator(...) {}
   static_assert(!std::is_void<decltype(is_deleter<int>(std::declval<std::default_delete<int>>()))>::value,
                 "std::default_delete<T> is not detected as a deleter!");
-  static_assert(!std::is_void<decltype(is_allocator(std::declval<std::allocator<int>>()))>::value, "std::allocator<T> is not detected as an allocator!");
+  static_assert(!std::is_void<decltype(is_allocator(std::declval<std::allocator<int>>()))>::value,
+                "std::allocator<T> is not detected as an allocator!");
 }  // namespace detail
 
 class path_view;
@@ -226,7 +241,8 @@ class path_view_component;
 inline LLFIO_PATH_VIEW_CONSTEXPR bool operator==(path_view_component x, path_view_component y) noexcept;
 inline LLFIO_PATH_VIEW_CONSTEXPR bool operator==(path_view x, path_view y) noexcept;
 #if __cplusplus >= 202000L || _HAS_CXX20
-inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(path_view_component x, path_view_component y) noexcept;
+inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(path_view_component x,
+                                                                  path_view_component y) noexcept;
 inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(path_view x, path_view y) noexcept;
 #else
 inline LLFIO_PATH_VIEW_CONSTEXPR bool operator!=(path_view_component x, path_view_component y) noexcept;
@@ -247,16 +263,22 @@ class LLFIO_DECL path_view_component
 {
   friend class path_view;
   friend class detail::path_view_iterator;
-  friend inline LLFIO_PATH_VIEW_CONSTEXPR bool LLFIO_V2_NAMESPACE::operator==(path_view_component x, path_view_component y) noexcept;
+  friend inline LLFIO_PATH_VIEW_CONSTEXPR bool LLFIO_V2_NAMESPACE::operator==(path_view_component x,
+                                                                              path_view_component y) noexcept;
 #if __cplusplus >= 202000L || _HAS_CXX20
-  friend inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(path_view_component x, path_view_component y) noexcept;
+  friend inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(path_view_component x,
+                                                                           path_view_component y) noexcept;
 #else
-  friend inline LLFIO_PATH_VIEW_CONSTEXPR bool LLFIO_V2_NAMESPACE::operator!=(path_view_component x, path_view_component y) noexcept;
-  friend inline LLFIO_PATH_VIEW_CONSTEXPR bool LLFIO_V2_NAMESPACE::operator<(path_view_component x, path_view_component y) noexcept;
+  friend inline LLFIO_PATH_VIEW_CONSTEXPR bool LLFIO_V2_NAMESPACE::operator!=(path_view_component x,
+                                                                              path_view_component y) noexcept;
+  friend inline LLFIO_PATH_VIEW_CONSTEXPR bool LLFIO_V2_NAMESPACE::operator<(path_view_component x,
+                                                                             path_view_component y) noexcept;
 #endif
   friend inline LLFIO_PATH_VIEW_CONSTEXPR size_t hash_value(path_view_component x) noexcept;
-  template <class F> friend inline LLFIO_PATH_VIEW_CONSTEXPR auto LLFIO_V2_NAMESPACE::visit(path_view_component view, F &&f);
-  template <class F> friend inline LLFIO_PATH_VIEW_CONSTEXPR auto LLFIO_V2_NAMESPACE::visit(F &&f, path_view_component view);
+  template <class F>
+  friend inline LLFIO_PATH_VIEW_CONSTEXPR auto LLFIO_V2_NAMESPACE::visit(path_view_component view, F &&f);
+  template <class F>
+  friend inline LLFIO_PATH_VIEW_CONSTEXPR auto LLFIO_V2_NAMESPACE::visit(F &&f, path_view_component view);
   friend inline std::ostream &LLFIO_V2_NAMESPACE::operator<<(std::ostream &s, const path_view_component &v);
 
 public:
@@ -276,7 +298,8 @@ public:
 
   //! True if path views can be constructed from this character type.
   //! i.e. is one of `char`, `wchar_t`, `char8_t`, `char16_t`
-  template <class Char> static constexpr bool is_source_chartype_acceptable = detail::is_source_chartype_acceptable<Char>::value;
+  template <class Char>
+  static constexpr bool is_source_chartype_acceptable = detail::is_source_chartype_acceptable<Char>::value;
 
   //! True if path views can be constructed from this source.
   //! i.e. `is_source_chartype_acceptable`, or is `byte`
@@ -489,14 +512,16 @@ public:
   (DEVIATES from P1030, cannot detect contiguous iterator in SFINAE in C++ 14)
   */
   LLFIO_TEMPLATE(class It, class End)
-  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_chartype_acceptable<typename It::value_type>), LLFIO_TPRED(is_source_chartype_acceptable<typename End::value_type>))
+  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_chartype_acceptable<typename It::value_type>),
+                  LLFIO_TPRED(is_source_chartype_acceptable<typename End::value_type>))
   constexpr path_view_component(It b, End e, enum termination zt, format fmt = binary_format) noexcept
       : path_view_component(addressof(*b), e - b, zt, fmt)
   {
   }
   //! \overload
   LLFIO_TEMPLATE(class It, class End)
-  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_chartype_acceptable<std::decay_t<It>>), LLFIO_TPRED(is_source_chartype_acceptable<std::decay_t<End>>))
+  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_chartype_acceptable<std::decay_t<It>>),
+                  LLFIO_TPRED(is_source_chartype_acceptable<std::decay_t<End>>))
   constexpr path_view_component(It *b, End *e, enum termination zt, format fmt = binary_format) noexcept
       : path_view_component(b, e - b, zt, fmt)
   {
@@ -507,14 +532,16 @@ public:
   (DEVIATES from P1030, cannot detect contiguous iterator in SFINAE in C++ 14)
   */
   LLFIO_TEMPLATE(class It, class End)
-  LLFIO_TREQUIRES(LLFIO_TPRED(std::is_same<typename It::value_type, byte>::value), LLFIO_TPRED(std::is_same<typename End::value_type, byte>::value))
+  LLFIO_TREQUIRES(LLFIO_TPRED(std::is_same<typename It::value_type, byte>::value),
+                  LLFIO_TPRED(std::is_same<typename End::value_type, byte>::value))
   constexpr path_view_component(It b, End e, enum termination zt) noexcept
       : path_view_component(addressof(*b), e - b, zt, binary_format)
   {
   }
   //! \overload
   LLFIO_TEMPLATE(class It, class End)
-  LLFIO_TREQUIRES(LLFIO_TPRED(std::is_same<std::decay_t<It>, byte>::value), LLFIO_TPRED(std::is_same<std::decay_t<End>, byte>::value))
+  LLFIO_TREQUIRES(LLFIO_TPRED(std::is_same<std::decay_t<It>, byte>::value),
+                  LLFIO_TPRED(std::is_same<std::decay_t<End>, byte>::value))
   constexpr path_view_component(It *b, End *e, enum termination zt) noexcept
       : path_view_component(b, e - b, zt, binary_format)
   {
@@ -542,37 +569,46 @@ private:
     default:
 #ifdef _WIN32
     case format::auto_format:
-      return _utf8 ? basic_string_view<char8_t>(_char8str, _length).find_first_of((const char8_t *) "/\\", startidx)  //
-                     :
-                     (_utf16 ? basic_string_view<char16_t>(_char16str, _length).find_first_of((const char16_t *) L"/\\", startidx)  //
-                               :
-                               (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find_first_of(L"/\\", startidx)  //
-                                         :
-                                         basic_string_view<char>((const char *) _bytestr, _length).find_first_of((const char *) "/\\", startidx)));
+      return _utf8 ?
+             basic_string_view<char8_t>(_char8str, _length).find_first_of((const char8_t *) "/\\", startidx)  //
+             :
+             (
+             _utf16 ?
+             basic_string_view<char16_t>(_char16str, _length).find_first_of((const char16_t *) L"/\\", startidx)  //
+             :
+             (_wchar ?
+              basic_string_view<wchar_t>(_wcharstr, _length).find_first_of(L"/\\", startidx)  //
+              :
+              basic_string_view<char>((const char *) _bytestr, _length).find_first_of((const char *) "/\\", startidx)));
     case format::native_format:
-      return _utf8 ? basic_string_view<char8_t>(_char8str, _length).find(preferred_separator, startidx)  //
-                     :
-                     (_utf16 ? basic_string_view<char16_t>(_char16str, _length).find(preferred_separator, startidx)  //
-                               :
-                               (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find(preferred_separator, startidx)  //
-                                         :
-                                         basic_string_view<char>((const char *) _bytestr, _length).find(preferred_separator, startidx)));
+      return _utf8 ?
+             basic_string_view<char8_t>(_char8str, _length).find(preferred_separator, startidx)  //
+             :
+             (_utf16 ?
+              basic_string_view<char16_t>(_char16str, _length).find(preferred_separator, startidx)  //
+              :
+              (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find(preferred_separator, startidx)  //
+                        :
+                        basic_string_view<char>((const char *) _bytestr, _length).find(preferred_separator, startidx)));
     case format::generic_format:
-      return _utf8 ? basic_string_view<char8_t>(_char8str, _length).find('/', startidx)  //
-                     :
-                     (_utf16 ? basic_string_view<char16_t>(_char16str, _length).find('/', startidx)  //
-                               :
-                               (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find('/', startidx)  //
-                                         :
-                                         basic_string_view<char>((const char *) _bytestr, _length).find('/', startidx)));
+      return _utf8 ?
+             basic_string_view<char8_t>(_char8str, _length).find('/', startidx)  //
+             :
+             (_utf16 ? basic_string_view<char16_t>(_char16str, _length).find('/', startidx)  //
+                       :
+                       (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find('/', startidx)  //
+                                 :
+                                 basic_string_view<char>((const char *) _bytestr, _length).find('/', startidx)));
 #else
-      return _utf8 ? basic_string_view<char8_t>(_char8str, _length).find(preferred_separator, startidx)  //
-                     :
-                     (_utf16 ? basic_string_view<char16_t>(_char16str, _length).find(preferred_separator, startidx)  //
-                               :
-                               (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find(preferred_separator, startidx)  //
-                                         :
-                                         basic_string_view<char>((const char *) _bytestr, _length).find(preferred_separator, startidx)));
+      return _utf8 ?
+             basic_string_view<char8_t>(_char8str, _length).find(preferred_separator, startidx)  //
+             :
+             (_utf16 ?
+              basic_string_view<char16_t>(_char16str, _length).find(preferred_separator, startidx)  //
+              :
+              (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find(preferred_separator, startidx)  //
+                        :
+                        basic_string_view<char>((const char *) _bytestr, _length).find(preferred_separator, startidx)));
 #endif
     }
   }
@@ -586,21 +622,25 @@ private:
     default:
 #ifdef _WIN32
     case format::auto_format:
-      return _utf8 ? basic_string_view<char8_t>(_char8str, _length).find_last_of((const char8_t *) "/\\", endidx)  //
-                     :
-                     (_utf16 ? basic_string_view<char16_t>(_char16str, _length).find_last_of((const char16_t *) L"/\\", endidx)  //
-                               :
-                               (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find_last_of(L"/\\", endidx)  //
-                                         :
-                                         basic_string_view<char>((const char *) _bytestr, _length).find_last_of("/\\", endidx)));
+      return _utf8 ?
+             basic_string_view<char8_t>(_char8str, _length).find_last_of((const char8_t *) "/\\", endidx)  //
+             :
+             (_utf16 ?
+              basic_string_view<char16_t>(_char16str, _length).find_last_of((const char16_t *) L"/\\", endidx)  //
+              :
+              (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).find_last_of(L"/\\", endidx)  //
+                        :
+                        basic_string_view<char>((const char *) _bytestr, _length).find_last_of("/\\", endidx)));
     case format::native_format:
-      return _utf8 ? basic_string_view<char8_t>(_char8str, _length).rfind(preferred_separator, endidx)  //
-                     :
-                     (_utf16 ? basic_string_view<char16_t>(_char16str, _length).rfind(preferred_separator, endidx)  //
-                               :
-                               (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).rfind(preferred_separator, endidx)  //
-                                         :
-                                         basic_string_view<char>((const char *) _bytestr, _length).rfind(preferred_separator, endidx)));
+      return _utf8 ?
+             basic_string_view<char8_t>(_char8str, _length).rfind(preferred_separator, endidx)  //
+             :
+             (_utf16 ?
+              basic_string_view<char16_t>(_char16str, _length).rfind(preferred_separator, endidx)  //
+              :
+              (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).rfind(preferred_separator, endidx)  //
+                        :
+                        basic_string_view<char>((const char *) _bytestr, _length).rfind(preferred_separator, endidx)));
     case format::generic_format:
       return _utf8 ? basic_string_view<char8_t>(_char8str, _length).rfind('/', endidx)  //
                      :
@@ -610,13 +650,15 @@ private:
                                          :
                                          basic_string_view<char>((const char *) _bytestr, _length).rfind('/', endidx)));
 #else
-      return _utf8 ? basic_string_view<char8_t>(_char8str, _length).rfind(preferred_separator, endidx)  //
-                     :
-                     (_utf16 ? basic_string_view<char16_t>(_char16str, _length).rfind(preferred_separator, endidx)  //
-                               :
-                               (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).rfind(preferred_separator, endidx)  //
-                                         :
-                                         basic_string_view<char>((const char *) _bytestr, _length).rfind(preferred_separator, endidx)));
+      return _utf8 ?
+             basic_string_view<char8_t>(_char8str, _length).rfind(preferred_separator, endidx)  //
+             :
+             (_utf16 ?
+              basic_string_view<char16_t>(_char16str, _length).rfind(preferred_separator, endidx)  //
+              :
+              (_wchar ? basic_string_view<wchar_t>(_wcharstr, _length).rfind(preferred_separator, endidx)  //
+                        :
+                        basic_string_view<char>((const char *) _bytestr, _length).rfind(preferred_separator, endidx)));
 #endif
     }
   }
@@ -627,7 +669,8 @@ private:
     {
       return *this;
     }
-    return _invoke([sep_idx, this](const auto &v) { return path_view_component(v.data() + sep_idx + 1, v.size() - sep_idx - 1, termination()); });
+    return _invoke([sep_idx, this](const auto &v)
+                   { return path_view_component(v.data() + sep_idx + 1, v.size() - sep_idx - 1, termination()); });
   }
 
 public:
@@ -662,7 +705,10 @@ public:
   //! True if input is declared to be null terminated
   constexpr bool has_null_termination() const noexcept { return _zero_terminated; }
   //! The zero termination during construction
-  constexpr enum termination termination() const noexcept { return _zero_terminated ? zero_terminated : not_zero_terminated; }
+  constexpr enum termination termination() const noexcept
+  {
+    return _zero_terminated ? zero_terminated : not_zero_terminated;
+  }
 
   //! True if `stem()` returns a non-empty path.
   LLFIO_PATH_VIEW_CONSTEXPR bool has_stem() const noexcept { return !stem().empty(); }
@@ -717,24 +763,30 @@ public:
   }
 
 private:
-  template <class CharT> static filesystem::path _path_from_char_array(basic_string_view<CharT> v, filesystem::path::format f)
+  template <class CharT>
+  static filesystem::path _path_from_char_array(basic_string_view<CharT> v, filesystem::path::format f)
   {
     return {v.data(), v.data() + v.size(), f};
   }
   static filesystem::path _path_from_char_array(basic_string_view<char8_t> v, filesystem::path::format f)
   {
-#if(__cplusplus >= 202000 || _HAS_CXX20) && (!defined(_LIBCPP_VERSION) || _LIBCPP_VERSION >= 12000 /* approx end of 2020 */)
+#if(__cplusplus >= 202000 || _HAS_CXX20) &&                                                                            \
+(!defined(_LIBCPP_VERSION) || _LIBCPP_VERSION >= 12000 /* approx end of 2020 */)
     return filesystem::path(v, f);
 #else
     if(f != filesystem::path::format::auto_format)
     {
-      LLFIO_EXCEPTION_THROW(std::runtime_error("UTF-8 path conversion pre-C++20 cannot handle non-auto_format formatting."));
+      LLFIO_EXCEPTION_THROW(
+      std::runtime_error("UTF-8 path conversion pre-C++20 cannot handle non-auto_format formatting."));
     }
     return filesystem::u8path((const char *) v.data(), (const char *) v.data() + v.size());
 #endif
   }
 
-  template <class CharT> static int _do_compare(const CharT *a, const CharT *b, size_t length) noexcept { return memcmp(a, b, length * sizeof(CharT)); }
+  template <class CharT> static int _do_compare(const CharT *a, const CharT *b, size_t length) noexcept
+  {
+    return memcmp(a, b, length * sizeof(CharT));
+  }
   static int _do_compare(const char8_t *_a, const char8_t *_b, size_t length) noexcept
   {
 #if LLFIO_PATH_VIEW_CHAR8_TYPE_EMULATED
@@ -754,14 +806,15 @@ private:
   }
   // Identical source encodings compare lexiographically
   template <class DestT, class Deleter, size_t _internal_buffer_size, class CharT>
-  static int _compare(basic_string_view<CharT> a, enum termination /*unused*/, basic_string_view<CharT> b, enum termination /*unused*/,
-                      const std::locale * /*unused*/) noexcept
+  static int _compare(basic_string_view<CharT> a, enum termination /*unused*/, basic_string_view<CharT> b,
+                      enum termination /*unused*/, const std::locale * /*unused*/) noexcept
   {
     return a.compare(b);
   }
   // Disparate source encodings compare via rendered_path
   template <class DestT, class Deleter, size_t _internal_buffer_size, class Char1T, class Char2T>
-  static int _compare(basic_string_view<Char1T> a, enum termination a_zt, basic_string_view<Char2T> b, enum termination b_zt, const std::locale *loc) noexcept
+  static int _compare(basic_string_view<Char1T> a, enum termination a_zt, basic_string_view<Char2T> b,
+                      enum termination b_zt, const std::locale *loc) noexcept
   {
     path_view_component _a_(a.data(), a.size(), a_zt);
     path_view_component _b_(b.data(), b.size(), b_zt);
@@ -824,7 +877,11 @@ public:
   {
     return _invoke(
     [&](const auto &self)
-    { return p._invoke([&](const auto &other) { return _compare<T, Deleter, _internal_buffer_size>(self, termination(), other, p.termination(), &loc); }); });
+    {
+      return p._invoke(
+      [&](const auto &other)
+      { return _compare<T, Deleter, _internal_buffer_size>(self, termination(), other, p.termination(), &loc); });
+    });
   }
   //! \overload
   LLFIO_TEMPLATE(class T = typename filesystem::path::value_type, class Deleter = default_rendered_path_deleter<T[]>,
@@ -833,8 +890,11 @@ public:
   constexpr int compare(path_view_component p) const
   {
     return _invoke(
-    [&](const auto &self) {
-      return p._invoke([&](const auto &other) { return _compare<T, Deleter, _internal_buffer_size>(self, termination(), other, p.termination(), nullptr); });
+    [&](const auto &self)
+    {
+      return p._invoke(
+      [&](const auto &other)
+      { return _compare<T, Deleter, _internal_buffer_size>(self, termination(), other, p.termination(), nullptr); });
     });
   }
 
@@ -932,7 +992,8 @@ private:
     //! As span
     constexpr _view_type as_span() const noexcept { return _ref; }
   };
-  template <enum path_view_component::termination ZeroTermination, class T, bool = false> struct _rendered_path_base : public _rendered_path_base_<T>
+  template <enum path_view_component::termination ZeroTermination, class T, bool = false>
+  struct _rendered_path_base : public _rendered_path_base_<T>
   {
     //! As string view
     constexpr basic_string_view<T> as_string_view() const { return {this->_ref.data(), this->_ref.size()}; }
@@ -972,14 +1033,17 @@ public:
   dynamic memory allocation in all situations.
   */
   LLFIO_TEMPLATE(enum path_view_component::termination ZeroTermination, class T = typename filesystem::path::value_type,
-                 class AllocatorOrDeleter = default_rendered_path_deleter<T[]>, size_t _internal_buffer_size = default_internal_buffer_size)
+                 class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
+                 size_t _internal_buffer_size = default_internal_buffer_size)
   LLFIO_TREQUIRES(LLFIO_TPRED(is_source_acceptable<T>))
   class rendered_path : public _rendered_path_base<ZeroTermination, T>
   {
     using _base = _rendered_path_base<ZeroTermination, T>;
-    static_assert(is_source_acceptable<T>, "path_view_component::rendered_path<T> does not have a T which is one of byte, char, wchar_t, char8_t nor char16_t");
+    static_assert(is_source_acceptable<T>, "path_view_component::rendered_path<T> does not have a T which is one of "
+                                           "byte, char, wchar_t, char8_t nor char16_t");
     template <class DestT, class _Deleter, size_t _internal_buffer_size_, class Char1T, class Char2T>
-    friend int path_view_component::_compare(basic_string_view<Char1T> a, enum termination a_zt, basic_string_view<Char2T> b, enum termination b_zt,
+    friend int path_view_component::_compare(basic_string_view<Char1T> a, enum termination a_zt,
+                                             basic_string_view<Char2T> b, enum termination b_zt,
                                              const std::locale *loc) noexcept;
 
   public:
@@ -992,7 +1056,8 @@ public:
   private:
     template <class X = void> static constexpr bool _is_deleter_based = std::is_void<allocator_type>::value;
     template <class X = void> static constexpr bool _is_allocator_based = std::is_void<deleter_type>::value;
-    static_assert(_is_allocator_based<> + _is_deleter_based<> == 1, "AllocatorOrDeleter must be either a callable deleter, or a STL allocator, for value_type");
+    static_assert(_is_allocator_based<> + _is_deleter_based<> == 1,
+                  "AllocatorOrDeleter must be either a callable deleter, or a STL allocator, for value_type");
 
     LLFIO_TEMPLATE(class U, class source_type)
     LLFIO_TREQUIRES(LLFIO_TPRED(!std::is_same<source_type, value_type>::value))
@@ -1005,9 +1070,10 @@ public:
     {
       using LLFIO_V2_NAMESPACE::basic_string_view;
       // If the consuming API is a NT kernel API, and we have / in the path, we shall need to do slash conversion
-      const bool needs_slash_translation = (filesystem::path::preferred_separator != '/') &&
-                                           (view.formatting() == format::auto_format || view.formatting() == format::generic_format) &&
-                                           view._invoke([](auto sv) { return sv.find('/') != _npos; });
+      const bool needs_slash_translation =
+      (filesystem::path::preferred_separator != '/') &&
+      (view.formatting() == format::auto_format || view.formatting() == format::generic_format) &&
+      view._invoke([](auto sv) { return sv.find('/') != _npos; });
       if(!needs_slash_translation && (this->termination() == not_zero_terminated || view._zero_terminated))
       {
         _base::_ref = typename _base::_view_type(source, view._length);
@@ -1117,23 +1183,28 @@ public:
       value_type *end = nullptr;
       if(view._passthrough)
       {
-        end = detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._bytestr, view._length, loc);
+        end =
+        detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._bytestr, view._length, loc);
       }
       else if(view._char)
       {
-        end = detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._charstr, view._length, loc);
+        end =
+        detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._charstr, view._length, loc);
       }
       else if(view._wchar)
       {
-        end = detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._wcharstr, view._length, loc);
+        end =
+        detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._wcharstr, view._length, loc);
       }
       else if(view._utf8)
       {
-        end = detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._char8str, view._length, loc);
+        end =
+        detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._char8str, view._length, loc);
       }
       else if(view._utf16)
       {
-        end = detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._char16str, view._length, loc);
+        end =
+        detail::reencode_path_to(required_length, _buffer, _internal_buffer_size, view._char16str, view._length, loc);
       }
       else
       {
@@ -1199,7 +1270,10 @@ public:
     struct _allocate_not_anything_else
     {
       template <class U> explicit _allocate_not_anything_else(U * /*unused*/) {}
-      value_type *operator()(size_t length) const { return static_cast<value_type *>(::operator new[](length * sizeof(value_type))); }
+      value_type *operator()(size_t length) const
+      {
+        return static_cast<value_type *>(::operator new[](length * sizeof(value_type)));
+      }
     };
     struct _memory_resource_allocate
     {
@@ -1217,7 +1291,8 @@ public:
     };
     template <class Alloc> static auto _default_allocate(Alloc *alloc)
     {
-      using type = std::conditional_t<std::is_void<deleter_type>::value, _stl_allocator_allocate<Alloc>, _allocate_not_anything_else>;
+      using type = std::conditional_t<std::is_void<deleter_type>::value, _stl_allocator_allocate<Alloc>,
+                                      _allocate_not_anything_else>;
       return type(alloc);
     }
 
@@ -1231,7 +1306,8 @@ public:
       auto *mr = static_cast<pmr::memory_resource *>(_mr);
       mr->deallocate(p, bytes);
     }
-    template <class Alloc = allocator_type> static void _stl_allocator_deallocate(void *_del, value_type *p, size_t bytes)
+    template <class Alloc = allocator_type>
+    static void _stl_allocator_deallocate(void *_del, value_type *p, size_t bytes)
     {
       auto *del = static_cast<Alloc *>(_del);
       del->deallocate(p, bytes / sizeof(value_type));
@@ -1242,11 +1318,15 @@ public:
     };
     struct _wrap_stl_allocator_deallocate
     {
-      _wrap_stl_allocator_deallocate(void *_del, value_type *p, size_t bytes) { _stl_allocator_deallocate<>(_del, p, bytes); }
+      _wrap_stl_allocator_deallocate(void *_del, value_type *p, size_t bytes)
+      {
+        _stl_allocator_deallocate<>(_del, p, bytes);
+      }
     };
     static void _default_deleter(void *_del, value_type *p, size_t bytes)
     {
-      using type = std::conditional_t<std::is_void<deleter_type>::value, _wrap_stl_allocator_deallocate, _wrap_invoke_deleter>;
+      using type =
+      std::conditional_t<std::is_void<deleter_type>::value, _wrap_stl_allocator_deallocate, _wrap_invoke_deleter>;
       type(_del, p, bytes);
     }
 
@@ -1275,8 +1355,10 @@ public:
     on most filesystems), use native narrow or wide encoded source, or binary.
     */
     LLFIO_TEMPLATE(class U, class V)
-    LLFIO_TREQUIRES(LLFIO_TPRED(_is_deleter_based<U>), LLFIO_TEXPR(std::declval<U>()((size_t) 1)), LLFIO_TEXPR(std::declval<V>()((value_type *) nullptr)))
-    rendered_path(path_view_component view, const std::locale &loc, U &&allocate, V &&deleter = AllocatorOrDeleter(), _custom_callable_deleter_tag = {})
+    LLFIO_TREQUIRES(LLFIO_TPRED(_is_deleter_based<U>), LLFIO_TEXPR(std::declval<U>()((size_t) 1)),
+                    LLFIO_TEXPR(std::declval<V>()((value_type *) nullptr)))
+    rendered_path(path_view_component view, const std::locale &loc, U &&allocate, V &&deleter = AllocatorOrDeleter(),
+                  _custom_callable_deleter_tag = {})
         : _deleter1(_invoke_deleter)
         , _deleter1arg(&_deleter2)
         , _deleter2(static_cast<V &&>(deleter))
@@ -1285,8 +1367,10 @@ public:
     }
     //! \overload
     LLFIO_TEMPLATE(class U, class V)
-    LLFIO_TREQUIRES(LLFIO_TPRED(_is_deleter_based<U>), LLFIO_TEXPR(std::declval<U>()((size_t) 1)), LLFIO_TEXPR(std::declval<V>()((value_type *) nullptr)))
-    rendered_path(path_view_component view, U &&allocate, V &&deleter = AllocatorOrDeleter(), _custom_callable_deleter_tag = {})
+    LLFIO_TREQUIRES(LLFIO_TPRED(_is_deleter_based<U>), LLFIO_TEXPR(std::declval<U>()((size_t) 1)),
+                    LLFIO_TEXPR(std::declval<V>()((value_type *) nullptr)))
+    rendered_path(path_view_component view, U &&allocate, V &&deleter = AllocatorOrDeleter(),
+                  _custom_callable_deleter_tag = {})
         : _deleter1(_invoke_deleter)
         , _deleter1arg(&_deleter2)
         , _deleter2(static_cast<V &&>(deleter))
@@ -1325,7 +1409,8 @@ public:
         , _deleter1arg(&_deleter2)
         , _deleter2(static_cast<U &&>(allocate))
     {
-      _init(view, (const std::locale *) nullptr, _stl_allocator_allocate<std::decay_t<U>>(static_cast<std::decay_t<U> *>(&_deleter2)));
+      _init(view, (const std::locale *) nullptr,
+            _stl_allocator_allocate<std::decay_t<U>>(static_cast<std::decay_t<U> *>(&_deleter2)));
     }
     //! \overload
     rendered_path(path_view_component view, const std::locale &loc)
@@ -1343,8 +1428,10 @@ public:
     }
     //! Construct from a compatible `rendered_path`.
     LLFIO_TEMPLATE(class AllocatorOrDeleter2, size_t _internal_buffer_size2)
-    LLFIO_TREQUIRES(LLFIO_TPRED(!std::is_same<rendered_path, rendered_path<ZeroTermination, T, AllocatorOrDeleter2, _internal_buffer_size2>>::value),
-                    LLFIO_TPRED(std::is_constructible<AllocatorOrDeleter, AllocatorOrDeleter2>::value))
+    LLFIO_TREQUIRES(
+    LLFIO_TPRED(!std::is_same<rendered_path,
+                              rendered_path<ZeroTermination, T, AllocatorOrDeleter2, _internal_buffer_size2>>::value),
+    LLFIO_TPRED(std::is_constructible<AllocatorOrDeleter, AllocatorOrDeleter2>::value))
     explicit rendered_path(rendered_path<ZeroTermination, T, AllocatorOrDeleter2, _internal_buffer_size2> &&o) noexcept
         : _base(o)
         , _bytes_to_delete(o._bytes_to_delete)
@@ -1417,7 +1504,10 @@ public:
     //! The zero termination of this rendered path
     static constexpr enum termination termination() noexcept { return ZeroTermination; }
     //! The size of the internal buffer
-    static constexpr size_t internal_buffer_size() noexcept { return (_internal_buffer_size > 0) ? _internal_buffer_size : 1; }
+    static constexpr size_t internal_buffer_size() noexcept
+    {
+      return (_internal_buffer_size > 0) ? _internal_buffer_size : 1;
+    }
     //! The storage capacity, which may be larger than `size()` if the internal buffer is in use
     size_t capacity() const noexcept { return (this->data() == _buffer) ? internal_buffer_size() : this->size(); }
     //! True if this rendered path refers to the source path view
@@ -1496,49 +1586,68 @@ public:
     value_type _buffer[internal_buffer_size()]{};
   };
   //! Convenience type alias
-  template <class T = typename filesystem::path::value_type, class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
+  template <class T = typename filesystem::path::value_type,
+            class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
             size_t _internal_buffer_size = default_internal_buffer_size>
-  using zero_terminated_rendered_path = rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>;
+  using zero_terminated_rendered_path =
+  rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>;
   //! Convenience type alias
-  template <class T = typename filesystem::path::value_type, class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
+  template <class T = typename filesystem::path::value_type,
+            class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
             size_t _internal_buffer_size = default_internal_buffer_size>
-  using not_zero_terminated_rendered_path = rendered_path<termination::not_zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>;
+  using not_zero_terminated_rendered_path =
+  rendered_path<termination::not_zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>;
   //! Convenience function
   LLFIO_TEMPLATE(enum path_view_component::termination ZeroTermination, class T = typename filesystem::path::value_type,
-                 class AllocatorOrDeleter = default_rendered_path_deleter<T[]>, size_t _internal_buffer_size = default_internal_buffer_size, class... Args)
+                 class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
+                 size_t _internal_buffer_size = default_internal_buffer_size, class... Args)
   LLFIO_TREQUIRES(
   LLFIO_TPRED(is_source_acceptable<T>),
-  LLFIO_TEXPR(std::is_constructible<rendered_path<ZeroTermination, T, AllocatorOrDeleter, _internal_buffer_size>, path_view_component, Args...>::value))
-  rendered_path<ZeroTermination, T, AllocatorOrDeleter, _internal_buffer_size> render(path_view_component view, Args &&...args) const
+  LLFIO_TEXPR(std::is_constructible<rendered_path<ZeroTermination, T, AllocatorOrDeleter, _internal_buffer_size>,
+                                    path_view_component, Args...>::value))
+  rendered_path<ZeroTermination, T, AllocatorOrDeleter, _internal_buffer_size> render(path_view_component view,
+                                                                                      Args &&...args) const
   {
-    return rendered_path<ZeroTermination, T, AllocatorOrDeleter, _internal_buffer_size>(view, std::forward<Args>(args)...);
+    return rendered_path<ZeroTermination, T, AllocatorOrDeleter, _internal_buffer_size>(view,
+                                                                                        std::forward<Args>(args)...);
   }
   //! Convenience function
-  LLFIO_TEMPLATE(class T = typename filesystem::path::value_type, class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
+  LLFIO_TEMPLATE(class T = typename filesystem::path::value_type,
+                 class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
                  size_t _internal_buffer_size = default_internal_buffer_size, class... Args)
-  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_acceptable<T>),
-                  LLFIO_TEXPR(std::is_constructible<rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>,
-                                                    path_view_component, Args...>::value))
-  rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size> render_null_terminated(Args &&...args) const
+  LLFIO_TREQUIRES(
+  LLFIO_TPRED(is_source_acceptable<T>),
+  LLFIO_TEXPR(
+  std::is_constructible<rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>,
+                        path_view_component, Args...>::value))
+  rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>
+  render_null_terminated(Args &&...args) const
   {
-    return rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>(*this, std::forward<Args>(args)...);
+    return rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>(
+    *this, std::forward<Args>(args)...);
   }
   //! Convenience function
-  LLFIO_TEMPLATE(class T = typename filesystem::path::value_type, class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
+  LLFIO_TEMPLATE(class T = typename filesystem::path::value_type,
+                 class AllocatorOrDeleter = default_rendered_path_deleter<T[]>,
                  size_t _internal_buffer_size = default_internal_buffer_size, class... Args)
-  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_acceptable<T>),
-                  LLFIO_TEXPR(std::is_constructible<rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>,
-                                                    path_view_component, Args...>::value))
-  rendered_path<termination::not_zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size> render_unterminated(Args &&...args) const
+  LLFIO_TREQUIRES(
+  LLFIO_TPRED(is_source_acceptable<T>),
+  LLFIO_TEXPR(
+  std::is_constructible<rendered_path<termination::zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>,
+                        path_view_component, Args...>::value))
+  rendered_path<termination::not_zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>
+  render_unterminated(Args &&...args) const
   {
-    return rendered_path<termination::not_zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>(*this, std::forward<Args>(args)...);
+    return rendered_path<termination::not_zero_terminated, T, AllocatorOrDeleter, _internal_buffer_size>(
+    *this, std::forward<Args>(args)...);
   }
 
 #ifdef __cpp_concepts
   template <enum path_view_component::termination ZeroTermination, class T, class Deleter, size_t _internal_buffer_size>
     requires(is_source_acceptable<T>)
 #elif defined(_MSC_VER)
-  template <enum path_view_component::termination ZeroTermination, class T, class Deleter, size_t _internal_buffer_size, class>
+  template <enum path_view_component::termination ZeroTermination, class T, class Deleter, size_t _internal_buffer_size,
+            class>
 #else
   template <enum path_view_component::termination ZeroTermination, class T, class Deleter, size_t _internal_buffer_size,
             typename std::enable_if<(is_source_acceptable<T>), bool>::type>
@@ -1548,8 +1657,8 @@ public:
 static_assert(std::is_trivially_copyable<path_view_component>::value, "path_view_component is not trivially copyable!");
 static_assert(sizeof(path_view_component) == 3 * sizeof(void *), "path_view_component is not three pointers in size!");
 
-//! \brief Compares **identity** equality not equivalence i.e. backing storage type must be identical, and backing bytes must be identical. Use `compare()` if
-//! you want something stronger.
+//! \brief Compares **identity** equality not equivalence i.e. backing storage type must be identical, and backing bytes
+//! must be identical. Use `compare()` if you want something stronger.
 inline LLFIO_PATH_VIEW_CONSTEXPR bool operator==(path_view_component x, path_view_component y) noexcept
 {
   if(x._passthrough != y._passthrough)
@@ -1589,14 +1698,16 @@ LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view_component::is_source_acceptable<CharT>))
 inline constexpr bool operator==(path_view_component /*unused*/, const CharT * /*unused*/) noexcept
 {
-  static_assert(!path_view_component::is_source_acceptable<CharT>, "Do not use operator== with path_view_component and a string literal, use .compare<>()");
+  static_assert(!path_view_component::is_source_acceptable<CharT>,
+                "Do not use operator== with path_view_component and a string literal, use .compare<>()");
   return false;
 }
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view_component::is_source_acceptable<CharT>))
 inline constexpr bool operator==(const CharT * /*unused*/, path_view_component /*unused*/) noexcept
 {
-  static_assert(!path_view_component::is_source_acceptable<CharT>, "Do not use operator== with path_view_component and a string literal, use .compare<>()");
+  static_assert(!path_view_component::is_source_acceptable<CharT>,
+                "Do not use operator== with path_view_component and a string literal, use .compare<>()");
   return false;
 }
 #if __cplusplus >= 202000L || _HAS_CXX20
@@ -1671,22 +1782,26 @@ inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(path_view_comp
 
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view_component::is_source_acceptable<CharT>))
-inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(path_view_component /*unused*/, const CharT * /*unused*/) noexcept
+inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(path_view_component /*unused*/,
+                                                                  const CharT * /*unused*/) noexcept
 {
-  static_assert(!path_view_component::is_source_acceptable<CharT>, "Do not use operator<=> with path_view_component and a string literal, use .compare<>()");
+  static_assert(!path_view_component::is_source_acceptable<CharT>,
+                "Do not use operator<=> with path_view_component and a string literal, use .compare<>()");
   return std::strong_ordering::equal;
 }
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view_component::is_source_acceptable<CharT>))
-inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(const CharT * /*unused*/, path_view_component /*unused*/) noexcept
+inline LLFIO_PATH_VIEW_CONSTEXPR std::strong_ordering operator<=>(const CharT * /*unused*/,
+                                                                  path_view_component /*unused*/) noexcept
 {
-  static_assert(!path_view_component::is_source_acceptable<CharT>, "Do not use operator<=> with path_view_component and a string literal, use .compare<>()");
+  static_assert(!path_view_component::is_source_acceptable<CharT>,
+                "Do not use operator<=> with path_view_component and a string literal, use .compare<>()");
   return std::strong_ordering::equal;
 }
 
 #else
-//! \brief Compares **identity** inequality not disequivalence i.e. backing storage type must be different, or backing bytes must be different. Use `compare()`
-//! if you want something stronger.
+//! \brief Compares **identity** inequality not disequivalence i.e. backing storage type must be different, or backing
+//! bytes must be different. Use `compare()` if you want something stronger.
 inline LLFIO_PATH_VIEW_CONSTEXPR bool operator!=(path_view_component x, path_view_component y) noexcept
 {
   if(x._passthrough != y._passthrough)
@@ -1722,8 +1837,8 @@ inline LLFIO_PATH_VIEW_CONSTEXPR bool operator!=(path_view_component x, path_vie
   const auto bytes = (x._wchar || x._utf16) ? (x._length * 2) : x._length;
   return 0 != memcmp(x._bytestr, y._bytestr, bytes);
 }
-//! \brief Compares **identity** for ordering i.e. backing storage type must be different, or backing bytes must be different. Use `compare()`
-//! if you want something stronger.
+//! \brief Compares **identity** for ordering i.e. backing storage type must be different, or backing bytes must be
+//! different. Use `compare()` if you want something stronger.
 inline LLFIO_PATH_VIEW_CONSTEXPR bool operator<(path_view_component x, path_view_component y) noexcept
 {
   if(x._passthrough < y._passthrough)
@@ -1788,28 +1903,32 @@ LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view_component::is_source_acceptable<CharT>))
 inline constexpr bool operator!=(path_view_component /*unused*/, const CharT * /*unused*/) noexcept
 {
-  static_assert(!path_view_component::is_source_acceptable<CharT>, "Do not use operator!= with path_view_component and a string literal, use .compare<>()");
+  static_assert(!path_view_component::is_source_acceptable<CharT>,
+                "Do not use operator!= with path_view_component and a string literal, use .compare<>()");
   return false;
 }
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view_component::is_source_acceptable<CharT>))
 inline constexpr bool operator!=(const CharT * /*unused*/, path_view_component /*unused*/) noexcept
 {
-  static_assert(!path_view_component::is_source_acceptable<CharT>, "Do not use operator!= with path_view_component and a string literal, use .compare<>()");
+  static_assert(!path_view_component::is_source_acceptable<CharT>,
+                "Do not use operator!= with path_view_component and a string literal, use .compare<>()");
   return false;
 }
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view_component::is_source_acceptable<CharT>))
 inline constexpr bool operator<(path_view_component /*unused*/, const CharT * /*unused*/) noexcept
 {
-  static_assert(!path_view_component::is_source_acceptable<CharT>, "Do not use operator< with path_view_component and a string literal, use .compare<>()");
+  static_assert(!path_view_component::is_source_acceptable<CharT>,
+                "Do not use operator< with path_view_component and a string literal, use .compare<>()");
   return false;
 }
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view_component::is_source_acceptable<CharT>))
 inline constexpr bool operator<(const CharT * /*unused*/, path_view_component /*unused*/) noexcept
 {
-  static_assert(!path_view_component::is_source_acceptable<CharT>, "Do not use operator< with path_view_component and a string literal, use .compare<>()");
+  static_assert(!path_view_component::is_source_acceptable<CharT>,
+                "Do not use operator< with path_view_component and a string literal, use .compare<>()");
   return false;
 }
 #endif
@@ -1821,7 +1940,8 @@ inline LLFIO_PATH_VIEW_CONSTEXPR size_t hash_value(path_view_component view) noe
   [](auto sv) -> size_t
   {
     // std::hash isn't available for all kinds of string view on older compilers :(
-    const auto hash = QUICKCPPLIB_NAMESPACE::algorithm::hash::fast_hash::hash((const char *) sv.data(), sv.size() * sizeof(*sv.data()));
+    const auto hash =
+    QUICKCPPLIB_NAMESPACE::algorithm::hash::fast_hash::hash((const char *) sv.data(), sv.size() * sizeof(*sv.data()));
     return *(size_t *) &hash;
   });
 }
@@ -2092,14 +2212,16 @@ public:
   (DEVIATES from P1030, cannot detect contiguous iterator in SFINAE in C++ 14)
   */
   LLFIO_TEMPLATE(class It, class End)
-  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_chartype_acceptable<typename It::value_type>), LLFIO_TPRED(is_source_chartype_acceptable<typename End::value_type>))
+  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_chartype_acceptable<typename It::value_type>),
+                  LLFIO_TPRED(is_source_chartype_acceptable<typename End::value_type>))
   constexpr path_view(It b, End e, enum termination zt, format fmt = auto_format) noexcept
       : path_view_component(addressof(*b), e - b, zt, fmt)
   {
   }
   //! \overload
   LLFIO_TEMPLATE(class It, class End)
-  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_chartype_acceptable<std::decay_t<It>>), LLFIO_TPRED(is_source_chartype_acceptable<std::decay_t<End>>))
+  LLFIO_TREQUIRES(LLFIO_TPRED(is_source_chartype_acceptable<std::decay_t<It>>),
+                  LLFIO_TPRED(is_source_chartype_acceptable<std::decay_t<End>>))
   constexpr path_view(It *b, End *e, enum termination zt, format fmt = auto_format) noexcept
       : path_view_component(b, e - b, zt, fmt)
   {
@@ -2110,14 +2232,16 @@ public:
   (DEVIATES from P1030, cannot detect contiguous iterator in SFINAE in C++ 14)
   */
   LLFIO_TEMPLATE(class It, class End)
-  LLFIO_TREQUIRES(LLFIO_TPRED(std::is_same<typename It::value_type, byte>::value), LLFIO_TPRED(std::is_same<typename End::value_type, byte>::value))
+  LLFIO_TREQUIRES(LLFIO_TPRED(std::is_same<typename It::value_type, byte>::value),
+                  LLFIO_TPRED(std::is_same<typename End::value_type, byte>::value))
   constexpr path_view(It b, End e, enum termination zt) noexcept
       : path_view_component(addressof(*b), e - b, zt, binary_format)
   {
   }
   //! \overload
   LLFIO_TEMPLATE(class It, class End)
-  LLFIO_TREQUIRES(LLFIO_TPRED(std::is_same<std::decay_t<It>, byte>::value), LLFIO_TPRED(std::is_same<std::decay_t<End>, byte>::value))
+  LLFIO_TREQUIRES(LLFIO_TPRED(std::is_same<std::decay_t<It>, byte>::value),
+                  LLFIO_TPRED(std::is_same<std::decay_t<End>, byte>::value))
   constexpr path_view(It *b, End *e, enum termination zt) noexcept
       : path_view_component(b, e - b, zt, binary_format)
   {
@@ -2230,7 +2354,8 @@ public:
             return false;
           }
         }
-        return v[64] == '.' && v[65] == 'd' && v[66] == 'e' && v[67] == 'l' && v[68] == 'e' && v[69] == 't' && v[70] == 'e' && v[71] == 'd';
+        return v[64] == '.' && v[65] == 'd' && v[66] == 'e' && v[67] == 'l' && v[68] == 'e' && v[69] == 't' &&
+               v[70] == 'e' && v[71] == 'd';
       }
       return false;
     });
@@ -2259,7 +2384,8 @@ public:
       // Sorry, this semantic is so broken that it's unwise to emulate!
       return path_view();
     }
-    return this->_invoke([sep_idx, this](auto v) { return path_view(v.data(), (sep_idx + 1), not_zero_terminated, formatting()); });
+    return this->_invoke([sep_idx, this](auto v)
+                         { return path_view(v.data(), (sep_idx + 1), not_zero_terminated, formatting()); });
   }
   //! Returns a view of the root name part of this view e.g. C:
   LLFIO_PATH_VIEW_CONSTEXPR path_view root_name() const noexcept
@@ -2269,7 +2395,8 @@ public:
     {
       return path_view();
     }
-    return this->_invoke([sep_idx, this](const auto &v) { return path_view(v.data(), sep_idx, not_zero_terminated, formatting()); });
+    return this->_invoke([sep_idx, this](const auto &v)
+                         { return path_view(v.data(), sep_idx, not_zero_terminated, formatting()); });
   }
   //! Returns a view of the root directory, if there is one e.g. /
   LLFIO_PATH_VIEW_CONSTEXPR path_view root_directory() const noexcept
@@ -2416,7 +2543,9 @@ public:
       return path_view(v.data(), (sep_idx == 0) ? 1 : sep_idx, not_zero_terminated, formatting());
     });
 #else
-    return this->_invoke([this, sep_idx](const auto &v) { return path_view(v.data(), (sep_idx == 0) ? 1 : sep_idx, not_zero_terminated, formatting()); });
+    return this->_invoke(
+    [this, sep_idx](const auto &v)
+    { return path_view(v.data(), (sep_idx == 0) ? 1 : sep_idx, not_zero_terminated, formatting()); });
 #endif
   }
   //! Returns a view of the filename part of this view.
@@ -2515,9 +2644,13 @@ namespace detail
     static constexpr auto _npos = string_view::npos;
     constexpr bool _state_not_special() const noexcept
     {
-      return (_inc_state == _at::none || _inc_state == _at::unused) && (_dec_state == _at::none || _dec_state == _at::unused);
+      return (_inc_state == _at::none || _inc_state == _at::unused) &&
+             (_dec_state == _at::none || _dec_state == _at::unused);
     }
-    constexpr bool _is_end() const noexcept { return (nullptr == _parent) || (_state_not_special() && _parent->native_size() == _begin); }
+    constexpr bool _is_end() const noexcept
+    {
+      return (nullptr == _parent) || (_state_not_special() && _parent->native_size() == _begin);
+    }
     constexpr size_t _find_unc_prefix() const noexcept
     {
       auto a = _parent->_find_first_sep(0);
@@ -2554,17 +2687,21 @@ namespace detail
       {
         assert(_end <= v.size());
         assert(_begin <= _end);
-        return path_view_component(v.data() + _begin, _end - _begin, (_end == v.size()) ? _parent->termination() : path_view_component::not_zero_terminated);
+        return path_view_component(v.data() + _begin, _end - _begin,
+                                   (_end == v.size()) ? _parent->termination() :
+                                                        path_view_component::not_zero_terminated);
       });
     }
     LLFIO_PATH_VIEW_CONSTEXPR void _inc() noexcept
     {
-      // std::cout << "ENTRY: _inc begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << " dec_state = " << (int) _dec_state
+      // std::cout << "ENTRY: _inc begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << "
+      // dec_state = " << (int) _dec_state
       //           << " string = " << **this << std::endl;
       // auto onexit = make_scope_exit(
       //[&]() noexcept
       //{
-      //   std::cout << "EXIT: _inc begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << " dec_state = " << (int) _dec_state
+      //   std::cout << "EXIT: _inc begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << "
+      //   dec_state = " << (int) _dec_state
       //             << " string = " << **this << std::endl;
       // });
       if(_dec_state != _at::unused)
@@ -2586,7 +2723,8 @@ namespace detail
       }
       do
       {
-        // std::cout << "ITER: _inc begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << " dec_state = " << (int) _dec_state
+        // std::cout << "ITER: _inc begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << "
+        // dec_state = " << (int) _dec_state
         //            << " string = " << **this << std::endl;
         _begin = (_end > 0 && _state_not_special()) ? (_end + 1) : _end;
         _end = _parent->_find_first_sep(_begin);
@@ -2648,12 +2786,14 @@ namespace detail
     }
     constexpr void _dec() noexcept
     {
-      // std::cout << "ENTRY: _dec begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << " dec_state = " << (int) _dec_state
+      // std::cout << "ENTRY: _dec begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << "
+      // dec_state = " << (int) _dec_state
       //           << " string = " << **this << std::endl;
       // auto onexit = make_scope_exit(
       //[&]() noexcept
       //{
-      //   std::cout << "EXIT: _dec begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << " dec_state = " << (int) _dec_state
+      //   std::cout << "EXIT: _dec begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << "
+      //   dec_state = " << (int) _dec_state
       //             << " string = " << **this << std::endl;
       // });
       if(_inc_state != _at::unused)
@@ -2691,8 +2831,10 @@ namespace detail
       do
       {
         auto is_end = _is_end();
-        // std::cout << "ITER: _dec begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << " dec_state = " << (int) _dec_state
-        //           << " is_end = " << is_end << " unc_prefix_end = " << unc_prefix_end << " string = " << **this << std::endl;
+        // std::cout << "ITER: _dec begin = " << _begin << " end = " << _end << " inc_state = " << (int) _inc_state << "
+        // dec_state = " << (int) _dec_state
+        //           << " is_end = " << is_end << " unc_prefix_end = " << unc_prefix_end << " string = " << **this <<
+        //           std::endl;
         _end = is_end ? _begin : (_begin - 1);
         if(0 == _end)
         {
@@ -2802,7 +2944,8 @@ namespace detail
       {
         return false;
       }
-      return _parent != o._parent || _begin != o._begin || _end != o._end || _state_not_special() != o._state_not_special();
+      return _parent != o._parent || _begin != o._begin || _end != o._end ||
+             _state_not_special() != o._state_not_special();
     }
     constexpr bool operator==(path_view_iterator o) const noexcept
     {
@@ -2810,7 +2953,8 @@ namespace detail
       {
         return true;
       }
-      return _parent == o._parent && _begin == o._begin && _end == o._end && _state_not_special() == o._state_not_special();
+      return _parent == o._parent && _begin == o._begin && _end == o._end &&
+             _state_not_special() == o._state_not_special();
     }
 
     constexpr path_view_iterator &operator--() noexcept
@@ -2863,7 +3007,8 @@ constexpr inline path_view::iterator path_view::end() noexcept
   return cend();
 }
 
-//! \brief Compares individual path view components for **identity** not equivalence. Use `compare()` if you want something stronger.
+//! \brief Compares individual path view components for **identity** not equivalence. Use `compare()` if you want
+//! something stronger.
 inline LLFIO_PATH_VIEW_CONSTEXPR bool operator==(path_view x, path_view y) noexcept
 {
   auto it1 = x.begin(), it2 = y.begin();
@@ -2888,14 +3033,16 @@ LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view::is_source_acceptable<CharT>))
 inline constexpr bool operator==(path_view /*unused*/, const CharT * /*unused*/) noexcept
 {
-  static_assert(!path_view::is_source_acceptable<CharT>, "Do not use operator== with path_view and a string literal, use .compare<>()");
+  static_assert(!path_view::is_source_acceptable<CharT>,
+                "Do not use operator== with path_view and a string literal, use .compare<>()");
   return false;
 }
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view::is_source_acceptable<CharT>))
 inline constexpr bool operator==(const CharT * /*unused*/, path_view /*unused*/) noexcept
 {
-  static_assert(!path_view::is_source_acceptable<CharT>, "Do not use operator== with path_view and a string literal, use .compare<>()");
+  static_assert(!path_view::is_source_acceptable<CharT>,
+                "Do not use operator== with path_view and a string literal, use .compare<>()");
   return false;
 }
 #if __cplusplus >= 202000L || _HAS_CXX20
@@ -2927,18 +3074,21 @@ LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view::is_source_acceptable<CharT>))
 inline constexpr std::strong_ordering operator<=>(path_view /*unused*/, const CharT * /*unused*/) noexcept
 {
-  static_assert(!path_view::is_source_acceptable<CharT>, "Do not use operator<=> with path_view and a string literal, use .compare<>()");
+  static_assert(!path_view::is_source_acceptable<CharT>,
+                "Do not use operator<=> with path_view and a string literal, use .compare<>()");
   return std::strong_ordering::equal;
 }
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view::is_source_acceptable<CharT>))
 inline constexpr std::strong_ordering operator<=>(const CharT * /*unused*/, path_view /*unused*/) noexcept
 {
-  static_assert(!path_view::is_source_acceptable<CharT>, "Do not use operator<=> with path_view and a string literal, use .compare<>()");
+  static_assert(!path_view::is_source_acceptable<CharT>,
+                "Do not use operator<=> with path_view and a string literal, use .compare<>()");
   return std::strong_ordering::equal;
 }
 #else
-//! \brief Compares individual path view components for non-**identity** not disequivalence. Use `compare()` if you want something stronger.
+//! \brief Compares individual path view components for non-**identity** not disequivalence. Use `compare()` if you want
+//! something stronger.
 inline LLFIO_PATH_VIEW_CONSTEXPR bool operator!=(path_view x, path_view y) noexcept
 {
   auto it1 = x.begin(), it2 = y.begin();
@@ -2984,14 +3134,16 @@ LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view::is_source_acceptable<CharT>))
 inline constexpr bool operator!=(path_view /*unused*/, const CharT * /*unused*/) noexcept
 {
-  static_assert(!path_view::is_source_acceptable<CharT>, "Do not use operator!= with path_view and a string literal, use .compare<>()");
+  static_assert(!path_view::is_source_acceptable<CharT>,
+                "Do not use operator!= with path_view and a string literal, use .compare<>()");
   return false;
 }
 LLFIO_TEMPLATE(class CharT)
 LLFIO_TREQUIRES(LLFIO_TPRED(path_view::is_source_acceptable<CharT>))
 inline constexpr bool operator!=(const CharT * /*unused*/, path_view /*unused*/) noexcept
 {
-  static_assert(!path_view::is_source_acceptable<CharT>, "Do not use operator!= with path_view and a string literal, use .compare<>()");
+  static_assert(!path_view::is_source_acceptable<CharT>,
+                "Do not use operator!= with path_view and a string literal, use .compare<>()");
   return false;
 }
 #endif
@@ -3011,7 +3163,8 @@ template <class T, class Deleter, size_t _internal_buffer_size>
 #elif defined(_MSC_VER)
 template <class T, class Deleter, size_t _internal_buffer_size, class>
 #else
-template <class T, class Deleter, size_t _internal_buffer_size, typename std::enable_if<(path_view::is_source_acceptable<T>), bool>::type>
+template <class T, class Deleter, size_t _internal_buffer_size,
+          typename std::enable_if<(path_view::is_source_acceptable<T>), bool>::type>
 #endif
 constexpr inline int path_view::compare(path_view o, const std::locale &loc) const
 {
@@ -3040,7 +3193,8 @@ template <class T, class Deleter, size_t _internal_buffer_size>
 #elif defined(_MSC_VER)
 template <class T, class Deleter, size_t _internal_buffer_size, class>
 #else
-template <class T, class Deleter, size_t _internal_buffer_size, typename std::enable_if<(path_view::is_source_acceptable<T>), bool>::type>
+template <class T, class Deleter, size_t _internal_buffer_size,
+          typename std::enable_if<(path_view::is_source_acceptable<T>), bool>::type>
 #endif
 constexpr inline int path_view::compare(path_view o) const
 {
@@ -3097,8 +3251,12 @@ namespace detail
   struct path_view_component_operator_slash_visitor
   {
     filesystem::path ret;
-    template <class CharT, class Traits> void operator()(basic_string_view<CharT, Traits> sv) { ret.assign(sv.begin(), sv.end()); }
-#if LLFIO_PATH_VIEW_CHAR8_TYPE_EMULATED || (defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 12000 /* approx end of 2020 */)
+    template <class CharT, class Traits> void operator()(basic_string_view<CharT, Traits> sv)
+    {
+      ret.assign(sv.begin(), sv.end());
+    }
+#if LLFIO_PATH_VIEW_CHAR8_TYPE_EMULATED ||                                                                             \
+(defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 12000 /* approx end of 2020 */)
     void operator()(basic_string_view<char8_t> sv)
     {
       basic_string_view<char> _((const char *) sv.data(), sv.size());
@@ -3133,8 +3291,12 @@ template <class charT> struct std::formatter<LLFIO_V2_NAMESPACE::path_view_compo
 {
   std::formatter<std::filesystem::path, charT> fmt;
   constexpr void set_debug_format() { fmt.set_debug_format(); }
-  constexpr typename std::basic_format_parse_context<charT>::iterator parse(std::basic_format_parse_context<charT> &ctx) { return fmt.parse(ctx); }
-  template <class FormatContext> typename FormatContext::iterator format(const LLFIO_V2_NAMESPACE::path_view_component &pv, FormatContext &ctx) const
+  constexpr typename std::basic_format_parse_context<charT>::iterator parse(std::basic_format_parse_context<charT> &ctx)
+  {
+    return fmt.parse(ctx);
+  }
+  template <class FormatContext>
+  typename FormatContext::iterator format(const LLFIO_V2_NAMESPACE::path_view_component &pv, FormatContext &ctx) const
   {
     return LLFIO_V2_NAMESPACE::visit(
     [&](auto sv)
@@ -3142,7 +3304,9 @@ template <class charT> struct std::formatter<LLFIO_V2_NAMESPACE::path_view_compo
       using type = typename decltype(sv)::value_type;
       if constexpr(std::is_same_v<type, std::byte>)
       {
-        return fmt.format(std::filesystem::path(QUICKCPPLIB_NAMESPACE::algorithm::string::to_hex_string((const char *) sv.data(), sv.size())), ctx);
+        return fmt.format(std::filesystem::path(
+                          QUICKCPPLIB_NAMESPACE::algorithm::string::to_hex_string((const char *) sv.data(), sv.size())),
+                          ctx);
       }
       else
       {
@@ -3156,8 +3320,12 @@ template <class charT> struct std::formatter<LLFIO_V2_NAMESPACE::path_view, char
 {
   std::formatter<std::filesystem::path, charT> fmt;
   constexpr void set_debug_format() { fmt.set_debug_format(); }
-  constexpr typename std::basic_format_parse_context<charT>::iterator parse(std::basic_format_parse_context<charT> &ctx) { return fmt.parse(ctx); }
-  template <class FormatContext> typename FormatContext::iterator format(const LLFIO_V2_NAMESPACE::path_view &pv, FormatContext &ctx) const
+  constexpr typename std::basic_format_parse_context<charT>::iterator parse(std::basic_format_parse_context<charT> &ctx)
+  {
+    return fmt.parse(ctx);
+  }
+  template <class FormatContext>
+  typename FormatContext::iterator format(const LLFIO_V2_NAMESPACE::path_view &pv, FormatContext &ctx) const
   {
     return LLFIO_V2_NAMESPACE::visit(
     [&](auto sv)
@@ -3165,7 +3333,9 @@ template <class charT> struct std::formatter<LLFIO_V2_NAMESPACE::path_view, char
       using type = typename decltype(sv)::value_type;
       if constexpr(std::is_same_v<type, std::byte>)
       {
-        return fmt.format(std::filesystem::path(QUICKCPPLIB_NAMESPACE::algorithm::string::to_hex_string((const char *) sv.data(), sv.size())), ctx);
+        return fmt.format(std::filesystem::path(
+                          QUICKCPPLIB_NAMESPACE::algorithm::string::to_hex_string((const char *) sv.data(), sv.size())),
+                          ctx);
       }
       else
       {

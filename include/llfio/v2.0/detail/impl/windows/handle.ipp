@@ -60,7 +60,8 @@ result<handle::path_type> handle::current_path() const noexcept
     // Should I use FILE_NAME_OPENED here instead of the default FILE_NAME_NORMALIZED?
     // I think the latter more likely to trap buggy assumptions, so let's do that. If
     // people really want FILE_NAME_OPENED, see to_win32_path().
-    DWORD len = GetFinalPathNameByHandleW(_v.h, _buffer + 3, (DWORD) (buffer.size() - 4 * sizeof(wchar_t)), VOLUME_NAME_NT);  // NOLINT
+    DWORD len = GetFinalPathNameByHandleW(_v.h, _buffer + 3, (DWORD) (buffer.size() - 4 * sizeof(wchar_t)),
+                                          VOLUME_NAME_NT);  // NOLINT
     if(len == 0)
     {
       return win32_error();
@@ -77,6 +78,7 @@ result<handle::path_type> handle::current_path() const noexcept
   {
     return error_from_exception();
   }
+  abort();
 }
 
 result<void> handle::close() noexcept
@@ -86,9 +88,11 @@ result<void> handle::close() noexcept
   {
 #ifndef NDEBUG
     // Trap when refined handle implementations don't set their vptr properly (this took a while to debug!)
-    if((static_cast<uint64_t>(_v.behaviour) & 0xff00) != 0 && !(_v.behaviour & native_handle_type::disposition::_child_close_executed))
+    if((static_cast<uint64_t>(_v.behaviour) & 0xff00) != 0 &&
+       !(_v.behaviour & native_handle_type::disposition::_child_close_executed))
     {
-      LLFIO_LOG_FATAL(this, "handle::close() called on a derived handle implementation, this suggests vptr is incorrect");
+      LLFIO_LOG_FATAL(this,
+                      "handle::close() called on a derived handle implementation, this suggests vptr is incorrect");
       abort();
     }
 #endif
@@ -113,7 +117,8 @@ result<handle> handle::clone() const noexcept
   LLFIO_LOG_FUNCTION_CALL(this);
   result<handle> ret(handle(native_handle(), _.flags));
   ret.value()._v.h = INVALID_HANDLE_VALUE;
-  if(DuplicateHandle(GetCurrentProcess(), _v.h, GetCurrentProcess(), &ret.value()._v.h, 0, 0, DUPLICATE_SAME_ACCESS) == 0)
+  if(DuplicateHandle(GetCurrentProcess(), _v.h, GetCurrentProcess(), &ret.value()._v.h, 0, 0, DUPLICATE_SAME_ACCESS) ==
+     0)
   {
     return win32_error();
   }
