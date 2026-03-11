@@ -75,7 +75,7 @@ jobs:
       uses: egor-tensin/setup-mingw@v3
 
     - name: CMake tests Windows
-      shell: msys2 {0}
+      shell: bash
       env:
         NAME: MinGW-${{ matrix.configuration }}
       run: |
