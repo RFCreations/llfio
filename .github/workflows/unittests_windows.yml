@@ -80,7 +80,7 @@ jobs:
         NAME: MinGW-${{ matrix.configuration }}
       run: |
         if [ "${{ matrix.configuration }}" = "status_code" ]; then
-          export CMAKE_CONFIGURE_OPTIONS="-DLLFIO_USE_EXPERIMENTAL_SG14_STATUS_CODE=ON -DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain-windows-mingw.cmake"
+          export CMAKE_CONFIGURE_OPTIONS="-DLLFIO_USE_EXPERIMENTAL_SG14_STATUS_CODE=ON;-DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain-windows-mingw.cmake"
         else
           export CMAKE_CONFIGURE_OPTIONS="-DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain-windows-mingw.cmake"
         fi

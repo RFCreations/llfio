@@ -71,7 +71,7 @@ inline auto signal_guard(const sigset_t *, F &&f, H &&, C &&, Args &&...args)
 {
   return f(static_cast<Args &&>(args)...);
 }
-template <class F, class H> inline auto signal_guard(const sigset_t *guarded, F &&f, H &&)
+template <class F, class H> inline auto signal_guard(const sigset_t *, F &&f, H &&)
 {
   return f();
 }
@@ -79,7 +79,7 @@ template <class F, class H> inline auto signal_guard(const sigset_t *guarded, F 
 class signal_guard_installation_holder
 {
 public:
-  explicit signal_guard_installation_holder(const sigset_t *set) {}
+  explicit signal_guard_installation_holder(const sigset_t *) {}
   signal_guard_installation_holder(const signal_guard_installation_holder &) = delete;
   signal_guard_installation_holder(signal_guard_installation_holder &&) = delete;
   signal_guard_installation_holder &operator=(const signal_guard_installation_holder &) = delete;
