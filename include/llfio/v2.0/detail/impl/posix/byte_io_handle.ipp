@@ -27,23 +27,24 @@ Distributed under the Boost Software License, Version 1.0.
 #include "import.hpp"
 
 #include <climits>  // for IOV_MAX
+#include <csignal>
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/uio.h>  // for preadv etc
 #include <unistd.h>
 
-#ifndef LLFIO_DISABLE_SIGNAL_GUARD
-#include "quickcpplib/signal_guard.hpp"
-#endif
+#include "../signal_guard.hpp"
 
 LLFIO_V2_NAMESPACE_BEGIN
 
 constexpr inline void _check_iovec_match()
 {
-  static_assert(sizeof(byte_io_handle::buffer_type) == sizeof(iovec), "buffer_type and struct iovec do not match in size");
+  static_assert(sizeof(byte_io_handle::buffer_type) == sizeof(iovec),
+                "buffer_type and struct iovec do not match in size");
   static_assert(offsetof(byte_io_handle::buffer_type, _data) == offsetof(iovec, iov_base),
                 "buffer_type and struct iovec do not have same offset of data member");
-  static_assert(offsetof(byte_io_handle::buffer_type, _len) == offsetof(iovec, iov_len), "buffer_type and struct iovec do not have same offset of len member");
+  static_assert(offsetof(byte_io_handle::buffer_type, _len) == offsetof(iovec, iov_len),
+                "buffer_type and struct iovec do not have same offset of len member");
 }
 
 size_t byte_io_handle::_do_max_buffers() const noexcept
@@ -69,8 +70,8 @@ size_t byte_io_handle::_do_max_buffers() const noexcept
   return v;
 }
 
-byte_io_handle::io_result<byte_io_handle::buffers_type> byte_io_handle::_do_read(byte_io_handle::io_request<byte_io_handle::buffers_type> reqs,
-                                                                                 deadline d) noexcept
+byte_io_handle::io_result<byte_io_handle::buffers_type>
+byte_io_handle::_do_read(byte_io_handle::io_request<byte_io_handle::buffers_type> reqs, deadline d) noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   if(d && !_v.is_nonblocking())
@@ -172,8 +173,8 @@ byte_io_handle::io_result<byte_io_handle::buffers_type> byte_io_handle::_do_read
   return {reqs.buffers};
 }
 
-byte_io_handle::io_result<byte_io_handle::const_buffers_type> byte_io_handle::_do_write(byte_io_handle::io_request<byte_io_handle::const_buffers_type> reqs,
-                                                                                        deadline d) noexcept
+byte_io_handle::io_result<byte_io_handle::const_buffers_type>
+byte_io_handle::_do_write(byte_io_handle::io_request<byte_io_handle::const_buffers_type> reqs, deadline d) noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   if(d && !_v.is_nonblocking())
@@ -229,23 +230,21 @@ byte_io_handle::io_result<byte_io_handle::const_buffers_type> byte_io_handle::_d
     do
     {
       // Can't guarantee that user code hasn't enabled SIGPIPE
-      byteswritten =
-#ifndef LLFIO_DISABLE_SIGNAL_GUARD
-      QUICKCPPLIB_NAMESPACE::signal_guard::signal_guard(
-      QUICKCPPLIB_NAMESPACE::signal_guard::signalc_set::broken_pipe,
-      [&]
+      static const sigset_t guarded = []
       {
-        return
-#endif
-        ::writev(_v.fd, iov, reqs.buffers.size());
-#ifndef LLFIO_DISABLE_SIGNAL_GUARD
-      },
-      [&](const QUICKCPPLIB_NAMESPACE::signal_guard::raised_signal_info * /*unused*/)
+        sigset_t set;
+        sigemptyset(&set);
+        sigaddset(&set, SIGPIPE);
+        return set;
+      }();
+      static signal_guard_installation_holder sghold(&guarded);
+      byteswritten = signal_guard(
+      &guarded, [&] { return ::writev(_v.fd, iov, reqs.buffers.size()); },
+      [&](const auto * /*unused*/)
       {
         errno = EPIPE;
         return -1;
       });
-#endif
       if(byteswritten <= 0)
       {
         if(byteswritten == 0 && is_socket())
@@ -291,8 +290,9 @@ byte_io_handle::io_result<byte_io_handle::const_buffers_type> byte_io_handle::_d
   return {reqs.buffers};
 }
 
-byte_io_handle::io_result<byte_io_handle::const_buffers_type> byte_io_handle::_do_barrier(byte_io_handle::io_request<byte_io_handle::const_buffers_type> reqs,
-                                                                                          barrier_kind kind, deadline d) noexcept
+byte_io_handle::io_result<byte_io_handle::const_buffers_type>
+byte_io_handle::_do_barrier(byte_io_handle::io_request<byte_io_handle::const_buffers_type> reqs, barrier_kind kind,
+                            deadline d) noexcept
 {
   (void) kind;
   LLFIO_LOG_FUNCTION_CALL(this);

@@ -25,13 +25,11 @@ Distributed under the Boost Software License, Version 1.0.
 #include "../../../map_handle.hpp"
 #include "../../../utils.hpp"
 
-#ifndef LLFIO_DISABLE_SIGNAL_GUARD
-#include "quickcpplib/signal_guard.hpp"
-#endif
+#include "../signal_guard.hpp"
 
 #include <sys/mman.h>
 
-//#define LLFIO_DEBUG_LINUX_MUNMAP
+// #define LLFIO_DEBUG_LINUX_MUNMAP
 
 #ifdef LLFIO_DEBUG_LINUX_MUNMAP
 #include <unistd.h>
@@ -158,10 +156,11 @@ map_handle::~map_handle()
     auto ret = map_handle::close();
     if(ret.has_error())
     {
-      LLFIO_LOG_FATAL(
-      _v.fd, "FATAL: map_handle::~map_handle() close failed. Cause is typically other code modifying mapped regions. If on Linux, you may have exceeded the "
-             "64k VMA process limit, set the LLFIO_DEBUG_LINUX_MUNMAP macro at the top of posix/map_handle.ipp to cause dumping of VMAs to "
-             "/tmp/llfio_unmap_debug_smaps.txt, and combine with strace to figure it out.");
+      LLFIO_LOG_FATAL(_v.fd, "FATAL: map_handle::~map_handle() close failed. Cause is typically other code modifying "
+                             "mapped regions. If on Linux, you may have exceeded the "
+                             "64k VMA process limit, set the LLFIO_DEBUG_LINUX_MUNMAP macro at the top of "
+                             "posix/map_handle.ipp to cause dumping of VMAs to "
+                             "/tmp/llfio_unmap_debug_smaps.txt, and combine with strace to figure it out.");
       abort();
     }
   }
@@ -189,7 +188,8 @@ result<void> map_handle::close() noexcept
         (void) ::lseek(llfio_linux_munmap_debug.smaps_fd, 0, SEEK_SET);
         char buffer[4096];
         (void) ::write(llfio_linux_munmap_debug.dumpfile_fd, buffer,
-                       sprintf(buffer, "\n---\nCause of munmap failure by process %d: %d (%s)\n\n", getpid(), olderrno, strerror(olderrno)));
+                       sprintf(buffer, "\n---\nCause of munmap failure by process %d: %d (%s)\n\n", getpid(), olderrno,
+                               strerror(olderrno)));
         do
         {
           bytesread = ::read(llfio_linux_munmap_debug.smaps_fd, buffer, sizeof(buffer));
@@ -221,8 +221,9 @@ native_handle_type map_handle::release() noexcept
   return {};
 }
 
-map_handle::io_result<map_handle::const_buffers_type> map_handle::_do_barrier(map_handle::io_request<map_handle::const_buffers_type> reqs, barrier_kind kind,
-                                                                              deadline d) noexcept
+map_handle::io_result<map_handle::const_buffers_type>
+map_handle::_do_barrier(map_handle::io_request<map_handle::const_buffers_type> reqs, barrier_kind kind,
+                        deadline d) noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   byte *addr = _addr + reqs.offset + (_offset & (_pagesize - 1));
@@ -294,13 +295,16 @@ LLFIO_HEADERS_ONLY_MEMFUNC_SPEC map_handle::memory_accounting_kind map_handle::m
 #endif
 
 
-static inline result<void *> do_mmap(native_handle_type &nativeh, void *ataddr, int extra_flags, section_handle *section, map_handle::size_type pagesize,
-                                     map_handle::size_type &bytes, map_handle::extent_type offset, section_handle::flag _flag) noexcept
+static inline result<void *> do_mmap(native_handle_type &nativeh, void *ataddr, int extra_flags,
+                                     section_handle *section, map_handle::size_type pagesize,
+                                     map_handle::size_type &bytes, map_handle::extent_type offset,
+                                     section_handle::flag _flag) noexcept
 {
   bool have_backing = (section != nullptr);
   int prot = 0, flags = have_backing ? MAP_SHARED : (MAP_PRIVATE | MAP_ANONYMOUS);
   void *addr = nullptr;
-  if(!(_flag & section_handle::flag::read) && !(_flag & section_handle::flag::write) && !(_flag & section_handle::flag::execute))
+  if(!(_flag & section_handle::flag::read) && !(_flag & section_handle::flag::write) &&
+     !(_flag & section_handle::flag::execute))
   {
     prot |= PROT_NONE;
 #ifdef MAP_GUARD
@@ -315,21 +319,25 @@ static inline result<void *> do_mmap(native_handle_type &nativeh, void *ataddr, 
     prot |= PROT_READ | PROT_WRITE;
     flags &= ~MAP_SHARED;
     flags |= MAP_PRIVATE;
-    if((nativeh.behaviour &
-        (native_handle_type::disposition::seekable | native_handle_type::disposition::readable | native_handle_type::disposition::writable)) !=
-       (native_handle_type::disposition::seekable | native_handle_type::disposition::readable | native_handle_type::disposition::writable))
+    if((nativeh.behaviour & (native_handle_type::disposition::seekable | native_handle_type::disposition::readable |
+                             native_handle_type::disposition::writable)) !=
+       (native_handle_type::disposition::seekable | native_handle_type::disposition::readable |
+        native_handle_type::disposition::writable))
     {
-      nativeh.behaviour |= native_handle_type::disposition::seekable | native_handle_type::disposition::readable | native_handle_type::disposition::writable;
+      nativeh.behaviour |= native_handle_type::disposition::seekable | native_handle_type::disposition::readable |
+                           native_handle_type::disposition::writable;
     }
   }
   else if(_flag & section_handle::flag::write)
   {
     prot = (_flag & section_handle::flag::write_via_syscall) ? PROT_READ : (PROT_READ | PROT_WRITE);
-    if((nativeh.behaviour &
-        (native_handle_type::disposition::seekable | native_handle_type::disposition::readable | native_handle_type::disposition::writable)) !=
-       (native_handle_type::disposition::seekable | native_handle_type::disposition::readable | native_handle_type::disposition::writable))
+    if((nativeh.behaviour & (native_handle_type::disposition::seekable | native_handle_type::disposition::readable |
+                             native_handle_type::disposition::writable)) !=
+       (native_handle_type::disposition::seekable | native_handle_type::disposition::readable |
+        native_handle_type::disposition::writable))
     {
-      nativeh.behaviour |= native_handle_type::disposition::seekable | native_handle_type::disposition::readable | native_handle_type::disposition::writable;
+      nativeh.behaviour |= native_handle_type::disposition::seekable | native_handle_type::disposition::readable |
+                           native_handle_type::disposition::writable;
     }
   }
   else if(_flag & section_handle::flag::read)
@@ -362,7 +370,8 @@ static inline result<void *> do_mmap(native_handle_type &nativeh, void *ataddr, 
     flags |= MAP_PREFAULT_READ;
 #endif
 #ifdef MAP_NOSYNC
-  if(have_backing && section->backing() != nullptr && (section->backing()->kernel_caching() == handle::caching::temporary))
+  if(have_backing && section->backing() != nullptr &&
+     (section->backing()->kernel_caching() == handle::caching::temporary))
     flags |= MAP_NOSYNC;
 #endif
   flags |= extra_flags;
@@ -371,7 +380,7 @@ static inline result<void *> do_mmap(native_handle_type &nativeh, void *ataddr, 
   {
 #ifdef __linux__
     static const auto &pagesizes = utils::page_sizes();  // can't throw, as guaranteed called before now
-    flags |= MAP_HUGETLB;  // gets me pagesizes[1]
+    flags |= MAP_HUGETLB;                                // gets me pagesizes[1]
     if(pagesize > pagesizes[1])
     {
 #ifdef MAP_HUGE_SHIFT
@@ -398,8 +407,8 @@ static inline result<void *> do_mmap(native_handle_type &nativeh, void *ataddr, 
   }
   auto _offset = offset & ~(pagesize - 1);
   auto _bytes = bytes + (offset & (pagesize - 1));
-// printf("mmap(%p, %u (%u), %d, %d, %d, %u (%u))\n", ataddr, (unsigned) _bytes, (unsigned) bytes, prot, flags, have_backing ? section->native_handle().fd : -1,
-// (unsigned) _offset, (unsigned) offset);
+// printf("mmap(%p, %u (%u), %d, %d, %d, %u (%u))\n", ataddr, (unsigned) _bytes, (unsigned) bytes, prot, flags,
+// have_backing ? section->native_handle().fd : -1, (unsigned) _offset, (unsigned) offset);
 #ifdef MAP_SYNC  // Linux kernel 4.15 or later only
   // If backed by a file into persistent shared memory, ask the kernel to use persistent memory safe semantics
   if(have_backing && (_flag & section_handle::flag::nvram) && (flags & MAP_SHARED) != 0)
@@ -477,7 +486,8 @@ result<map_handle> map_handle::_new_map(size_type bytes, bool fallback, section_
   return ret;
 }
 
-result<map_handle> map_handle::map(section_handle &section, size_type bytes, extent_type offset, section_handle::flag _flag) noexcept
+result<map_handle> map_handle::map(section_handle &section, size_type bytes, extent_type offset,
+                                   section_handle::flag _flag) noexcept
 {
   OUTCOME_TRY(auto &&length, section.length());  // length of the backing file
   if(length <= offset)
@@ -649,7 +659,8 @@ result<map_handle::buffer_type> map_handle::decommit(buffer_type region) noexcep
   // Remap these pages with ones having no access, and remove from commit charge
   extent_type offset = _offset + (region.data() - _addr);
   size_type bytes = region.size();
-  OUTCOME_TRYV(do_mmap(_v, region.data(), MAP_FIXED, _section, _pagesize, bytes, offset, section_handle::flag::none | section_handle::flag::nocommit));
+  OUTCOME_TRYV(do_mmap(_v, region.data(), MAP_FIXED, _section, _pagesize, bytes, offset,
+                       section_handle::flag::none | section_handle::flag::nocommit));
   return region;
 }
 
@@ -665,7 +676,8 @@ result<void> map_handle::zero_memory(buffer_type region) noexcept
   if we use this flag.
   */
   memset(region.data(), 0, region.size());
-  buffer_type page_region{utils::round_up_to_page_size(region.data(), _pagesize), utils::round_down_to_page_size(region.size(), _pagesize)};
+  buffer_type page_region{utils::round_up_to_page_size(region.data(), _pagesize),
+                          utils::round_down_to_page_size(region.size(), _pagesize)};
   // Zero contents
   if((page_region.size() != 0u) && _section == nullptr)
   {
@@ -674,12 +686,14 @@ result<void> map_handle::zero_memory(buffer_type region) noexcept
   return success();
 #endif
 #ifdef MADV_REMOVE
-  buffer_type page_region{utils::round_up_to_page_size(region.data(), _pagesize), utils::round_down_to_page_size(region.size(), _pagesize)};
+  buffer_type page_region{utils::round_up_to_page_size(region.data(), _pagesize),
+                          utils::round_down_to_page_size(region.size(), _pagesize)};
   // Zero contents and punch a hole in any backing storage
   if((page_region.size() != 0u) && -1 != ::madvise(page_region.data(), page_region.size(), MADV_REMOVE))
   {
     memset(region.data(), 0, page_region.data() - region.data());
-    memset(page_region.data() + page_region.size(), 0, (region.data() + region.size()) - (page_region.data() + page_region.size()));
+    memset(page_region.data() + page_region.size(), 0,
+           (region.data() + region.size()) - (page_region.data() + page_region.size()));
     return success();
   }
 #endif
@@ -727,7 +741,8 @@ result<map_handle::buffer_type> map_handle::do_not_store(buffer_type region) noe
   return region;
 }
 
-map_handle::io_result<map_handle::buffers_type> map_handle::_do_read(io_request<buffers_type> reqs, deadline /*d*/) noexcept
+map_handle::io_result<map_handle::buffers_type> map_handle::_do_read(io_request<buffers_type> reqs,
+                                                                     deadline /*d*/) noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   byte *addr = _addr + reqs.offset + (_offset & (_pagesize - 1));
@@ -748,7 +763,8 @@ map_handle::io_result<map_handle::buffers_type> map_handle::_do_read(io_request<
   return reqs.buffers;
 }
 
-map_handle::io_result<map_handle::const_buffers_type> map_handle::_do_write(io_request<const_buffers_type> reqs, deadline d) noexcept
+map_handle::io_result<map_handle::const_buffers_type> map_handle::_do_write(io_request<const_buffers_type> reqs,
+                                                                            deadline d) noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   if(!!(_flag & section_handle::flag::write_via_syscall) && _section != nullptr && _section->backing() != nullptr)
@@ -768,52 +784,62 @@ map_handle::io_result<map_handle::const_buffers_type> map_handle::_do_write(io_r
   }
   byte *addr = _addr + reqs.offset + (_offset & (_pagesize - 1));
   size_type togo = reqs.offset < _length ? static_cast<size_type>(_length - reqs.offset) : 0;
-#ifndef LLFIO_DISABLE_SIGNAL_GUARD
-  if(QUICKCPPLIB_NAMESPACE::signal_guard::signal_guard(
-     QUICKCPPLIB_NAMESPACE::signal_guard::signalc_set::undefined_memory_access | QUICKCPPLIB_NAMESPACE::signal_guard::signalc_set::segmentation_fault,
-#endif
+  static const sigset_t guarded = []
+  {
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGBUS);
+    sigaddset(&set, SIGSEGV);
+    return set;
+  }();
+  static signal_guard_installation_holder sghold(&guarded);
+  if(signal_guard(
+     &guarded,
      [&]
      {
-    for(size_t i = 0; i < reqs.buffers.size(); i++)
-    {
-      const_buffer_type &req = reqs.buffers[i];
-      if(req.size() > togo)
-      {
-        assert(req.data() != nullptr);
-        memcpy(addr, req.data(), togo);
-        req = {addr, togo};
-        reqs.buffers = {reqs.buffers.data(), i + 1};
-        return false;
-      }
-      else
-      {
-        assert(req.data() != nullptr);
-        memcpy(addr, req.data(), req.size());
-        req = {addr, req.size()};
-        addr += req.size();
-        togo -= req.size();
-      }
-    }
-    return false;
-#ifdef LLFIO_DISABLE_SIGNAL_GUARD
-       }();
-#else
+       for(size_t i = 0; i < reqs.buffers.size(); i++)
+       {
+         const_buffer_type &req = reqs.buffers[i];
+         if(req.size() > togo)
+         {
+           assert(req.data() != nullptr);
+           memcpy(addr, req.data(), togo);
+           req = {addr, togo};
+           reqs.buffers = {reqs.buffers.data(), i + 1};
+           return false;
+         }
+         else
+         {
+           assert(req.data() != nullptr);
+           memcpy(addr, req.data(), req.size());
+           req = {addr, req.size()};
+           addr += req.size();
+           togo -= req.size();
+         }
+       }
+       return false;
      },
-     [&](const QUICKCPPLIB_NAMESPACE::signal_guard::raised_signal_info *info)
+     [&](const auto *)
      {
-    auto *causingaddr = (byte *) info->addr;
-    if(causingaddr < _addr || causingaddr >= (_addr + _reservation))
-    {
-      // Not caused by this map
-      thrd_raise_signal(info->signo, info->raw_info, info->raw_context);
-      abort();
-    }
-    return true;
-     }))
+       return true;  // trigger no space left
+     }
+#ifndef LLFIO_DISABLE_SIGNAL_GUARD
+     ,
+     [&](auto *info)
      {
-       return errc::no_space_on_device;
+       auto *causingaddr = (byte *) info->addr;
+       if(causingaddr < _addr || causingaddr >= (_addr + _reservation))
+       {
+         // Not caused by this map
+         return WG14_SIGNALS_PREFIX(thrd_signal_decision_next_decider);
+       }
+       return WG14_SIGNALS_PREFIX(thrd_signal_decision_invoke_recovery);
      }
 #endif
+     ))
+  {
+    return errc::no_space_on_device;
+  }
   return reqs.buffers;
 }
 

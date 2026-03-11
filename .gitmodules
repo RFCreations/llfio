@@ -11,3 +11,6 @@
 	branch = master
 	fetchRecurseSubmodules = true
 	ignore = untracked
+[submodule "include/llfio/wg14_signals"]
+	path = include/llfio/wg14_signals
+	url = https://github.com/ned14/wg14_signals.git

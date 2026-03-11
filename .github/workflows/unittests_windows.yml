@@ -61,7 +61,7 @@ jobs:
         path: prebuilt/merged_junit_results.xml
 
   WinMinGW:
-    name: MinGW-MSYS2
+    name: MinGW
     strategy:
       fail-fast: false
       matrix:
@@ -69,13 +69,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW64
-        update: true
-        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
-
     - uses: actions/checkout@v4
+
+    - name: Setup MinGW
+      uses: egor-tensin/setup-mingw@v3
 
     - name: CMake tests Windows
       shell: msys2 {0}
@@ -83,7 +80,9 @@ jobs:
         NAME: MinGW-${{ matrix.configuration }}
       run: |
         if [ "${{ matrix.configuration }}" = "status_code" ]; then
-          export CMAKE_CONFIGURE_OPTIONS="-DLLFIO_USE_EXPERIMENTAL_SG14_STATUS_CODE=ON"
+          export CMAKE_CONFIGURE_OPTIONS="-DLLFIO_USE_EXPERIMENTAL_SG14_STATUS_CODE=ON -DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain-windows-mingw.cmake"
+        else
+          export CMAKE_CONFIGURE_OPTIONS="-DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain-windows-mingw.cmake"
         fi
         ctest -S .ci.cmake -VV --timeout 900 "-DCTEST_CONFIGURE_OPTIONS=$CMAKE_CONFIGURE_OPTIONS" -DCTEST_SITE=$NAME -DCTEST_CMAKE_GENERATOR=Ninja
        

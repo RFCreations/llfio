@@ -173,15 +173,15 @@ namespace starting with `v2_` inside the `boost::llfio` namespace.
 /*! \brief Expands into the appropriate namespace markup to enter the LLFIO v2 namespace.
 \ingroup config
 */
-#define LLFIO_V2_NAMESPACE_BEGIN                                                                                                                               \
-  namespace llfio_v2_xxx                                                                                                                                       \
+#define LLFIO_V2_NAMESPACE_BEGIN                                                                                       \
+  namespace llfio_v2_xxx                                                                                               \
   {
 /*! \brief Expands into the appropriate namespace markup to enter the C++ module
 exported LLFIO v2 namespace.
 \ingroup config
 */
-#define LLFIO_V2_NAMESPACE_EXPORT_BEGIN                                                                                                                        \
-  export namespace llfio_v2_xxx                                                                                                                                \
+#define LLFIO_V2_NAMESPACE_EXPORT_BEGIN                                                                                \
+  export namespace llfio_v2_xxx                                                                                        \
   {
 /*! \brief Expands into the appropriate namespace markup to exit the LLFIO v2 namespace.
 \ingroup config
@@ -303,7 +303,8 @@ LLFIO_V2_NAMESPACE_END
 // Bring in a string_view implementation
 #include <string_view>
 LLFIO_V2_NAMESPACE_BEGIN
-template <typename charT, typename traits = std::char_traits<charT>> using basic_string_view = std::basic_string_view<charT, traits>;
+template <typename charT, typename traits = std::char_traits<charT>>
+using basic_string_view = std::basic_string_view<charT, traits>;
 typedef basic_string_view<char, std::char_traits<char>> string_view;
 typedef basic_string_view<wchar_t, std::char_traits<wchar_t>> wstring_view;
 typedef basic_string_view<char16_t, std::char_traits<char16_t>> u16string_view;
@@ -447,10 +448,10 @@ function exported from the LLFIO DLL if not building headers only.
 #endif
 #ifndef LLFIO_EXCEPTION_THROW
 #ifndef __cpp_exceptions
-#define LLFIO_EXCEPTION_THROW(...)                                                                                                                             \
-  {                                                                                                                                                            \
-    fprintf(stderr, "FATAL: throw " #__VA_ARGS__ " at " __FILE__ ":%d\n", __LINE__);                                                                           \
-    abort();                                                                                                                                                   \
+#define LLFIO_EXCEPTION_THROW(...)                                                                                     \
+  {                                                                                                                    \
+    fprintf(stderr, "FATAL: throw " #__VA_ARGS__ " at " __FILE__ ":%d\n", __LINE__);                                   \
+    abort();                                                                                                           \
   }
 #else
 #define LLFIO_EXCEPTION_THROW(...) throw(__VA_ARGS__)
@@ -482,7 +483,8 @@ namespace detail
       if(sizeof(LLFIO_V2_NAMESPACE::filesystem::path) != sizeof_filesystem_path())
       {
         fprintf(stderr,
-                "FATAL: sizeof(filesystem::path) = %u differs in the translation unit '%s' to the sizeof(filesystem::path) = %u as when LLFIO was built!\n",
+                "FATAL: sizeof(filesystem::path) = %u differs in the translation unit '%s' to the "
+                "sizeof(filesystem::path) = %u as when LLFIO was built!\n",
                 (unsigned) sizeof(LLFIO_V2_NAMESPACE::filesystem::path), filepath, (unsigned) sizeof_filesystem_path());
         abort();
       }

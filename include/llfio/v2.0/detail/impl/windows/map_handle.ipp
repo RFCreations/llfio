@@ -28,9 +28,7 @@ Distributed under the Boost Software License, Version 1.0.
 
 #include "quickcpplib/algorithm/hash.hpp"
 
-#ifndef LLFIO_DISABLE_SIGNAL_GUARD
-#include "quickcpplib/signal_guard.hpp"
-#endif
+#include "../signal_guard.hpp"
 
 LLFIO_V2_NAMESPACE_BEGIN
 
@@ -140,7 +138,8 @@ result<section_handle> section_handle::section(file_handle &backing, extent_type
         wchar_t buffer[96];
       } name;
       HANDLE dir;  // Should not be freed
-      if(BaseGetNamedObjectDirectory(&dir) == 0 && NtQueryObject(dir, ObjectNameInformation, &name, sizeof(name), nullptr) == 0)
+      if(BaseGetNamedObjectDirectory(&dir) == 0 &&
+         NtQueryObject(dir, ObjectNameInformation, &name, sizeof(name), nullptr) == 0)
       {
         unsigned len = name.str.Length / sizeof(wchar_t);
         if(len + 7 + 34 >= std::size(buffer_))
@@ -167,8 +166,8 @@ result<section_handle> section_handle::section(file_handle &backing, extent_type
     auto unique_id = backing.unique_id();
     singleton_rwchar = buffer.second;
     buffer.second[0] = 'w';
-    QUICKCPPLIB_NAMESPACE::algorithm::string::to_hex_string(buffer.second + 1, sizeof(unique_id) * 4, reinterpret_cast<char *>(unique_id.as_bytes),
-                                                            sizeof(unique_id));
+    QUICKCPPLIB_NAMESPACE::algorithm::string::to_hex_string(
+    buffer.second + 1, sizeof(unique_id) * 4, reinterpret_cast<char *>(unique_id.as_bytes), sizeof(unique_id));
     buffer.second[33] = 0;
 #if 0
     {
@@ -189,7 +188,8 @@ result<section_handle> section_handle::section(file_handle &backing, extent_type
     }
 #endif
     _path.Buffer = buffer.first;
-    _path.MaximumLength = (_path.Length = static_cast<USHORT>((33 + buffer.second - buffer.first) * sizeof(wchar_t))) + sizeof(wchar_t);
+    _path.MaximumLength =
+    (_path.Length = static_cast<USHORT>((33 + buffer.second - buffer.first) * sizeof(wchar_t))) + sizeof(wchar_t);
     memset(&oa, 0, sizeof(oa));
     oa.Length = sizeof(OBJECT_ATTRIBUTES);
     oa.ObjectName = &_path;
@@ -213,10 +213,11 @@ result<section_handle> section_handle::section(file_handle &backing, extent_type
   {
     if(!(_flag & flag::write) && singleton_rwchar != nullptr)
     {
-      // We always preferentially open the writable section if it exists so resizes of it by any one process automatically
-      // update all other processes, which is much more efficient when multiple threads are reading and writing the same
-      // file and some have write privs and some have read privs. If however we are in a situation where LLFIO processes
-      // only ever read, try the read section too, and only create a read section if we have read only privs.
+      // We always preferentially open the writable section if it exists so resizes of it by any one process
+      // automatically update all other processes, which is much more efficient when multiple threads are reading and
+      // writing the same file and some have write privs and some have read privs. If however we are in a situation
+      // where LLFIO processes only ever read, try the read section too, and only create a read section if we have read
+      // only privs.
       *singleton_rwchar = 'r';
       ntstat = NtOpenSection(&h, SECTION_ALL_ACCESS, poa);
       if(ntstat >= 0)
@@ -314,7 +315,8 @@ result<section_handle> section_handle::section(extent_type bytes, const path_han
   _maximum_size.QuadPart = bytes;
   LLFIO_LOG_FUNCTION_CALL(&ret);
   HANDLE h;
-  NTSTATUS ntstat = NtCreateSection(&h, SECTION_ALL_ACCESS, nullptr, pmaximum_size, prot, attribs, anonh.native_handle().h);
+  NTSTATUS ntstat =
+  NtCreateSection(&h, SECTION_ALL_ACCESS, nullptr, pmaximum_size, prot, attribs, anonh.native_handle().h);
   if(ntstat < 0)
   {
     return ntkernel_error(ntstat);
@@ -373,8 +375,8 @@ template <class T> static inline T win32_round_up_to_allocation_size(T i) noexce
   i = (T) ((LLFIO_V2_NAMESPACE::detail::unsigned_integer_cast<uintptr_t>(i) + 65535) & ~(65535));  // NOLINT
   return i;
 }
-static inline result<void> win32_map_flags(native_handle_type &nativeh, DWORD &allocation, DWORD &prot, size_t &commitsize, bool enable_reservation,
-                                           section_handle::flag _flag)
+static inline result<void> win32_map_flags(native_handle_type &nativeh, DWORD &allocation, DWORD &prot,
+                                           size_t &commitsize, bool enable_reservation, section_handle::flag _flag)
 {
   prot = PAGE_NOACCESS;
   if(enable_reservation && ((_flag & section_handle::flag::nocommit) || (_flag == section_handle::flag::none)))
@@ -386,12 +388,14 @@ static inline result<void> win32_map_flags(native_handle_type &nativeh, DWORD &a
   if(_flag & section_handle::flag::cow)
   {
     prot = PAGE_WRITECOPY;
-    nativeh.behaviour |= native_handle_type::disposition::seekable | native_handle_type::disposition::readable | native_handle_type::disposition::writable;
+    nativeh.behaviour |= native_handle_type::disposition::seekable | native_handle_type::disposition::readable |
+                         native_handle_type::disposition::writable;
   }
   else if(_flag & section_handle::flag::write)
   {
     prot = (_flag & section_handle::flag::write_via_syscall) ? PAGE_READONLY : PAGE_READWRITE;
-    nativeh.behaviour |= native_handle_type::disposition::seekable | native_handle_type::disposition::readable | native_handle_type::disposition::writable;
+    nativeh.behaviour |= native_handle_type::disposition::seekable | native_handle_type::disposition::readable |
+                         native_handle_type::disposition::writable;
   }
   else if(_flag & section_handle::flag::read)
   {
@@ -535,7 +539,8 @@ static inline result<void> win32_release_file_allocations(byte *addr, size_t byt
   while(bytes > 0)
   {
     SIZE_T written = 0;
-    NTSTATUS ntstat = NtQueryVirtualMemory(GetCurrentProcess(), addr, MemoryRegionInformation, &mri, sizeof(mri), &written);
+    NTSTATUS ntstat =
+    NtQueryVirtualMemory(GetCurrentProcess(), addr, MemoryRegionInformation, &mri, sizeof(mri), &written);
     if(ntstat < 0)
     {
       return ntkernel_error(ntstat);
@@ -634,8 +639,9 @@ native_handle_type map_handle::release() noexcept
   return {};
 }
 
-map_handle::io_result<map_handle::const_buffers_type> map_handle::_do_barrier(map_handle::io_request<map_handle::const_buffers_type> reqs, barrier_kind kind,
-                                                                              deadline d) noexcept
+map_handle::io_result<map_handle::const_buffers_type>
+map_handle::_do_barrier(map_handle::io_request<map_handle::const_buffers_type> reqs, barrier_kind kind,
+                        deadline d) noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   byte *addr = _addr + reqs.offset;
@@ -737,7 +743,8 @@ result<map_handle> map_handle::_new_map(size_type bytes, bool fallback, section_
   return ret;
 }
 
-result<map_handle> map_handle::map(section_handle &section, size_type bytes, extent_type offset, section_handle::flag _flag) noexcept
+result<map_handle> map_handle::map(section_handle &section, size_type bytes, extent_type offset,
+                                   section_handle::flag _flag) noexcept
 {
   windows_nt_kernel::init();
   using namespace windows_nt_kernel;
@@ -769,7 +776,8 @@ result<map_handle> map_handle::map(section_handle &section, size_type bytes, ext
   SIZE_T _bytes = bytes + (offset & 65535);
   OUTCOME_TRY(win32_map_flags(nativeh, allocation, prot, commitsize, section.backing() != nullptr, ret.value()._flag));
   LLFIO_LOG_FUNCTION_CALL(&ret);
-  NTSTATUS ntstat = NtMapViewOfSection(section.native_handle().h, GetCurrentProcess(), &addr, 0, commitsize, &_offset, &_bytes, ViewUnmap, allocation, prot);
+  NTSTATUS ntstat = NtMapViewOfSection(section.native_handle().h, GetCurrentProcess(), &addr, 0, commitsize, &_offset,
+                                       &_bytes, ViewUnmap, allocation, prot);
   if(ntstat < 0)
   {
     return ntkernel_error(ntstat);
@@ -871,7 +879,8 @@ result<map_handle::size_type> map_handle::truncate(size_type newsize, bool /* un
   SIZE_T _bytes = newsize - _reservation;
   native_handle_type nativeh;
   OUTCOME_TRY(win32_map_flags(nativeh, allocation, prot, commitsize, _section->backing() != nullptr, _flag));
-  NTSTATUS ntstat = NtMapViewOfSection(_section->native_handle().h, GetCurrentProcess(), &addr, 0, commitsize, &offset, &_bytes, ViewUnmap, allocation, prot);
+  NTSTATUS ntstat = NtMapViewOfSection(_section->native_handle().h, GetCurrentProcess(), &addr, 0, commitsize, &offset,
+                                       &_bytes, ViewUnmap, allocation, prot);
   if(ntstat < 0)
   {
     return ntkernel_error(ntstat);
@@ -971,7 +980,8 @@ result<void> map_handle::zero_memory(buffer_type region) noexcept
                                       }
                                       else
                                       {
-                                        // This will always fail, but has the side effect of discarding the pages anyway.
+                                        // This will always fail, but has the side effect of discarding the pages
+                                        // anyway.
                                         if(VirtualUnlock(addr, bytes) == 0)
                                         {
                                           if(ERROR_NOT_LOCKED != GetLastError())
@@ -996,7 +1006,8 @@ result<span<map_handle::buffer_type>> map_handle::prefetch(span<buffer_type> reg
   {
     return span<map_handle::buffer_type>();
   }
-  static_assert(sizeof(WIN32_MEMORY_RANGE_ENTRY) == sizeof(buffer_type), "WIN32_MEMORY_RANGE_ENTRY is not the same size as a buffer_type!");
+  static_assert(sizeof(WIN32_MEMORY_RANGE_ENTRY) == sizeof(buffer_type),
+                "WIN32_MEMORY_RANGE_ENTRY is not the same size as a buffer_type!");
   auto wmre = reinterpret_cast<PWIN32_MEMORY_RANGE_ENTRY>(regions.data());
   if(PrefetchVirtualMemory_(GetCurrentProcess(), regions.size(), wmre, 0) == 0)
   {
@@ -1056,7 +1067,8 @@ result<map_handle::buffer_type> map_handle::do_not_store(buffer_type region) noe
   return region;
 }
 
-map_handle::io_result<map_handle::buffers_type> map_handle::_do_read(io_request<buffers_type> reqs, deadline /*d*/) noexcept
+map_handle::io_result<map_handle::buffers_type> map_handle::_do_read(io_request<buffers_type> reqs,
+                                                                     deadline /*d*/) noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   byte *addr = _addr + reqs.offset + (_offset & 65535);
@@ -1077,7 +1089,8 @@ map_handle::io_result<map_handle::buffers_type> map_handle::_do_read(io_request<
   return reqs.buffers;
 }
 
-map_handle::io_result<map_handle::const_buffers_type> map_handle::_do_write(io_request<const_buffers_type> reqs, deadline d) noexcept
+map_handle::io_result<map_handle::const_buffers_type> map_handle::_do_write(io_request<const_buffers_type> reqs,
+                                                                            deadline d) noexcept
 {
   LLFIO_LOG_FUNCTION_CALL(this);
   if(!!(_flag & section_handle::flag::write_via_syscall) && _section != nullptr && _section->backing() != nullptr)
@@ -1097,51 +1110,62 @@ map_handle::io_result<map_handle::const_buffers_type> map_handle::_do_write(io_r
   }
   byte *addr = _addr + reqs.offset + (_offset & 65535);
   size_type togo = reqs.offset < _length ? static_cast<size_type>(_length - reqs.offset) : 0;
-#ifndef LLFIO_DISABLE_SIGNAL_GUARD
-  if(QUICKCPPLIB_NAMESPACE::signal_guard::signal_guard(
-     QUICKCPPLIB_NAMESPACE::signal_guard::signalc_set::undefined_memory_access | QUICKCPPLIB_NAMESPACE::signal_guard::signalc_set::segmentation_fault,
-#endif
+  static const sigset_t guarded = []
+  {
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGBUS);
+    sigaddset(&set, SIGSEGV);
+    return set;
+  }();
+  static signal_guard_installation_holder sghold(&guarded);
+  if(signal_guard(
+     &guarded,
      [&]
      {
-    for(size_t i = 0; i < reqs.buffers.size(); i++)
-    {
-      const_buffer_type &req = reqs.buffers[i];
-      if(req.size() > togo)
-      {
-        assert(req.data() != nullptr);
-        memcpy(addr, req.data(), togo);
-        req = {addr, togo};
-        reqs.buffers = {reqs.buffers.data(), i + 1};
-        return false;
-      }
-      else
-      {
-        assert(req.data() != nullptr);
-        memcpy(addr, req.data(), req.size());
-        req = {addr, req.size()};
-        addr += req.size();
-        togo -= req.size();
-      }
-    }
-    return false;
-#ifdef LLFIO_DISABLE_SIGNAL_GUARD
-       }();
-#else
+       for(size_t i = 0; i < reqs.buffers.size(); i++)
+       {
+         const_buffer_type &req = reqs.buffers[i];
+         if(req.size() > togo)
+         {
+           assert(req.data() != nullptr);
+           memcpy(addr, req.data(), togo);
+           req = {addr, togo};
+           reqs.buffers = {reqs.buffers.data(), i + 1};
+           return false;
+         }
+         else
+         {
+           assert(req.data() != nullptr);
+           memcpy(addr, req.data(), req.size());
+           req = {addr, req.size()};
+           addr += req.size();
+           togo -= req.size();
+         }
+       }
+       return false;
      },
-     [&](const QUICKCPPLIB_NAMESPACE::signal_guard::raised_signal_info *info)
+     [&](const auto *)
      {
-    auto *causingaddr = (byte *) info->addr;
-    if(causingaddr < _addr || causingaddr >= (_addr + _length))
-    {
-      // Not caused by this map
-      thrd_raise_signal(info->signo, info->raw_info, info->raw_context);
-    }
-    return true;
-     }))
+       return true;  // trigger no space left
+     }
+#ifndef LLFIO_DISABLE_SIGNAL_GUARD
+     ,
+     [&](auto *info)
      {
-       return errc::no_space_on_device;
+       auto *causingaddr = (byte *) info->addr;
+       if(causingaddr < _addr || causingaddr >= (_addr + _reservation))
+       {
+         // Not caused by this map
+         return WG14_SIGNALS_PREFIX(thrd_signal_decision_next_decider);
+       }
+       return WG14_SIGNALS_PREFIX(thrd_signal_decision_invoke_recovery);
      }
 #endif
+     ))
+  {
+    return errc::no_space_on_device;
+  }
   return reqs.buffers;
 }
 

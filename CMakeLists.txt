@@ -55,6 +55,7 @@ else()
 endif()
 
 ensure_git_subrepo("${CMAKE_CURRENT_SOURCE_DIR}/include/llfio/ntkernel-error-category/include" "https://github.com/ned14/ntkernel-error-category.git")
+ensure_git_subrepo("${CMAKE_CURRENT_SOURCE_DIR}/include/llfio/wg14_signals/include" "https://github.com/ned14/wg14_signals.git")
 
 # Parse the version we tell cmake directly from the version header file
 ParseProjectVersionFromHpp("${CMAKE_CURRENT_SOURCE_DIR}/include/llfio/version.hpp" VERSIONSTRING)
