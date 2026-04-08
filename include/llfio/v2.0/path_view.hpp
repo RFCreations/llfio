@@ -1056,7 +1056,7 @@ public:
   private:
     template <class X = void> static constexpr bool _is_deleter_based = std::is_void<allocator_type>::value;
     template <class X = void> static constexpr bool _is_allocator_based = std::is_void<deleter_type>::value;
-    static_assert(_is_allocator_based<> + _is_deleter_based<> == 1,
+    static_assert(_is_allocator_based<void> + _is_deleter_based<void> == 1,
                   "AllocatorOrDeleter must be either a callable deleter, or a STL allocator, for value_type");
 
     LLFIO_TEMPLATE(class U, class source_type)
