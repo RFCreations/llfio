@@ -26,27 +26,26 @@ var NAVTREE =
 [
   [ "LLFIO", "index.html", [
     [ "Build instructions", "md__build.html", [
-      [ "v2 architecture and design implemented:", "index.html#autotoc_md21", null ],
-      [ "Planned features implemented:", "index.html#autotoc_md22", null ],
-      [ "Install from the vcpkg package manager", "md__build.html#autotoc_md24", null ],
-      [ "Prebuilt binaries", "md__build.html#autotoc_md25", null ],
-      [ "Get a copy of the source", "md__build.html#autotoc_md26", [
-        [ "If you already cloned before reading this", "md__build.html#autotoc_md27", null ]
+      [ "v2 architecture and design implemented:", "index.html#autotoc_md14", null ],
+      [ "Planned features implemented:", "index.html#autotoc_md15", null ],
+      [ "Install from the vcpkg package manager", "md__build.html#autotoc_md17", null ],
+      [ "Prebuilt binaries", "md__build.html#autotoc_md18", null ],
+      [ "Get a copy of the source", "md__build.html#autotoc_md19", [
+        [ "If you already cloned before reading this", "md__build.html#autotoc_md20", null ]
       ] ],
-      [ "Build static libraries from source", "md__build.html#autotoc_md28", null ],
-      [ "Build shared libraries from source", "md__build.html#autotoc_md29", null ],
-      [ "Installing libraries from source", "md__build.html#autotoc_md30", null ]
+      [ "Build static libraries from source", "md__build.html#autotoc_md21", null ],
+      [ "Build shared libraries from source", "md__build.html#autotoc_md22", null ],
+      [ "Installing libraries from source", "md__build.html#autotoc_md23", null ]
     ] ],
     [ "Todo List", "todo.html", null ],
-    [ "Modules", "modules.html", "modules" ],
+    [ "Topics", "topics.html", "topics" ],
     [ "Namespaces", "namespaces.html", [
       [ "Namespace List", "namespaces.html", "namespaces_dup" ],
       [ "Namespace Members", "namespacemembers.html", [
         [ "All", "namespacemembers.html", null ],
         [ "Functions", "namespacemembers_func.html", null ],
         [ "Typedefs", "namespacemembers_type.html", null ],
-        [ "Enumerations", "namespacemembers_enum.html", null ],
-        [ "Enumerator", "namespacemembers_eval.html", null ]
+        [ "Enumerations", "namespacemembers_enum.html", null ]
       ] ]
     ] ],
     [ "Classes", "annotated.html", [
@@ -60,7 +59,7 @@ var NAVTREE =
         [ "Typedefs", "functions_type.html", null ],
         [ "Enumerations", "functions_enum.html", null ],
         [ "Enumerator", "functions_eval.html", null ],
-        [ "Related Functions", "functions_rela.html", null ]
+        [ "Related Symbols", "functions_rela.html", null ]
       ] ]
     ] ],
     [ "Files", "files.html", [
@@ -76,26 +75,25 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"classllfio__v2__xxx_1_1algorithm_1_1shared__fs__mutex_1_1byte__ranges.html#adc6284803080e42505ba812d4711bb74",
-"classllfio__v2__xxx_1_1byte__io__handle.html#a1d6911771ac743fd9d64063c12429deb",
-"classllfio__v2__xxx_1_1byte__socket__handle.html#a7ceb8af9954296c9dee7e2e42cba0968",
-"classllfio__v2__xxx_1_1fast__random__file__handle.html#a3f7762b3c09faf7e47112f06803771e3",
-"classllfio__v2__xxx_1_1file__handle.html#ab82a83c5e44659e01a2218f0af41bde7",
-"classllfio__v2__xxx_1_1ip_1_1address__v6.html#a2b536fafe01a44f2fee6f57ba55e46ba",
-"classllfio__v2__xxx_1_1lockable__byte__io__handle.html#a3c88be7d2f6a2534acac343aab764f81",
-"classllfio__v2__xxx_1_1map__handle.html#ae44bc69b964c2140a3bab80dd8aed205",
-"classllfio__v2__xxx_1_1path__handle.html#a8a0dbf8624dfa681bfe549faedf4e0db",
-"classllfio__v2__xxx_1_1path__view__component_1_1rendered__path.html#acc4f5ac30a46558bea1ce4764dcb9f35",
-"classllfio__v2__xxx_1_1process__handle.html#aecd3a7db6cee3aec07d32fe6f99e6852adec4ecca8ae1593f84eea4656599a693",
-"classllfio__v2__xxx_1_1tls__socket__handle.html#a38eb57672e4130cf968657101b3335b6",
-"file__handle_8hpp.html#a5d9582bf6887848cd9fc363a282a1c21",
-"namespacellfio__v2__xxx.html#a209f670f6c6b08da7864aa85401ee124",
-"path__view_8hpp.html#a5be5d46e7385e95b82f145b950121f19",
-"structllfio__v2__xxx_1_1algorithm_1_1impl_1_1trivial__vector__impl.html#a3feb4c15c7805fd403138d677953b285",
-"structllfio__v2__xxx_1_1byte__io__multiplexer_1_1__unsynchronised__io__operation__state.html#afb28a80de7237017bb573c9615caf85c",
-"structllfio__v2__xxx_1_1construct_3_01symlink__handle_01_4.html#a805d70248616fe04029f7c85353cb643",
-"structllfio__v2__xxx_1_1statfs__t_1_1f__flags__t.html#a129920c6447ee9666c0bc935a8e2d243",
-"tls__socket__handle_8hpp.html#a1a51dd6cc5299a316fdcd05c4c7db2dc"
+"classllfio__v2__xxx_1_1algorithm_1_1impl_1_1trivial__vector__iterator.html#aad0467fd1862484409df72b9f23117ce",
+"classllfio__v2__xxx_1_1algorithm_1_1trivial__vector.html#a316f0f8773d00ba317e2ec83f767f48f",
+"classllfio__v2__xxx_1_1byte__io__handle.html#a4ca48bdcd6d6bf8b41d0cebb304fe9ce",
+"classllfio__v2__xxx_1_1fast__random__file__handle.html#a0a2a5896f5e373fa032cdae1c1fff2c1",
+"classllfio__v2__xxx_1_1file__handle.html#a730d89cf49839172bf15551139045112",
+"classllfio__v2__xxx_1_1handle.html#aa3930273a2d4cabbac309e0b75701dcaaecae13117d6f0584c25a9da6c8f8415e",
+"classllfio__v2__xxx_1_1map__handle.html#a22f9cba517e54e36ef80a788af737b8ba55677e6eb6d6c52c6f69d98b1905903f",
+"classllfio__v2__xxx_1_1mapped__file__handle.html#a40b582d6e889b270830689e0b298efd6",
+"classllfio__v2__xxx_1_1path__handle.html#ae81c55923bdf4bfc78c75fa60c2badcc",
+"classllfio__v2__xxx_1_1path__view__component.html#aaddc29d3eb4bd29e2a676ad0eac864c0",
+"classllfio__v2__xxx_1_1process__handle.html#a211fee447a47bdeb5424a2a5ae1de852",
+"classllfio__v2__xxx_1_1section__handle.html#a695ce0ed1606d540cfa452790ea71632",
+"classllfio__v2__xxx_1_1unique__file__lock.html#ae8af367ca1475f4a3c415fd7fff18694",
+"namespacellfio__v2__xxx.html#a692613da87074e2ffa2a54e24e0cb083",
+"structllfio__v2__xxx_1_1algorithm_1_1comparison__summary_1_1__lr.html#a7ba41ce2ef1ecb93e764d7a60ad9a006",
+"structllfio__v2__xxx_1_1algorithm_1_1impl_1_1trivial__vector__impl_3_01true_00_01_t_01_4.html#a744356e0eff2be54460ce02b7397acfb",
+"structllfio__v2__xxx_1_1construct_3_01pipe__handle_01_4.html",
+"structllfio__v2__xxx_1_1stat__t.html#acff996a1858563643390725d298a9279a71a59f32deaca0d11f3ac66f8cd0b873",
+"structllfio__v2__xxx_1_1symlink__handle_1_1const__buffers__type.html#a463abaa97ced312d1e981ea0f6042ab6"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
